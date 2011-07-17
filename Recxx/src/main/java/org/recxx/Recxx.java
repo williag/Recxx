@@ -2,7 +2,7 @@ package org.recxx;
 
 import org.recxx.facades.DatabaseFacadeWorker;
 import org.recxx.facades.FileFacadeWorker;
-import org.recxx.facades.RexxWorker;
+import org.recxx.facades.RecxxWorker;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -551,6 +551,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
     /**
      * Method recData.
+     *
      * @throws Exception
      */
     private void oldRecData() throws Exception {
@@ -903,7 +904,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                     .get((key));
 
             String type = (String) sourceProperties.get("type");
-            RexxWorker worker = null;
+            RecxxWorker worker = null;
 
             if (type.equals(DB_INPUT)) {
                 worker = new DatabaseFacadeWorker(prefix, propertiesFile);
