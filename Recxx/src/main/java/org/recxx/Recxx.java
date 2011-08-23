@@ -1,5 +1,6 @@
 package org.recxx;
 
+import org.recxx.exception.PropertiesFileException;
 import org.recxx.facades.DatabaseFacadeWorker;
 import org.recxx.facades.FileFacadeWorker;
 import org.recxx.facades.RecxxWorker;
@@ -12,6 +13,11 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.logging.Logger;
+
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
+import static org.recxx.ReconciliationMode.OW;
+import static org.recxx.ReconciliationMode.TW;
 
 /**
  * Generic SQL based reconciliation tool to allow comparison between data
@@ -104,7 +110,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     private String FILE_DELIMITER;
 
     // default reconciliation process it Two-Way (TW) as opposed to One-Way (OW)
-    private String m_recMode = "TW";
+    private String reconciliationMode = "TW";
     protected String m_delimiter = " ";
 
     private String m_outputType = "";
@@ -123,10 +129,11 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * Constructor for Rec2Inputs.
      *
-     * @param args
+     * @param args arguments to the program ( properties stub and the path to the filename )
      */
     public Recxx(String[] args) {
         super();
+        LOGGER.info("running with " + Arrays.toString(args));
         init(args[0], args[1]);
     }
 
@@ -134,16 +141,16 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * Normal main method to start up the class from a command line
      *
      * @param args
+     * @throws Exception
      */
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
-            throw new Exception("Usage: " + Recxx.class.getName()
-                    + " <prefix> <properties file>\n" + "Example: "
-                    + Recxx.class.getName() + " \\properties\\system.properties");
+            throw new Exception(format("Usage: %s <prefix> <properties file> Example: %s\\properties\\system.properties"
+                    , Recxx.class.getName(), Recxx.class.getName()));
         }
 
-        Recxx rec = new Recxx(args);
 
+        Recxx rec = new Recxx(args);
         Thread t = new Thread(rec);
         t.start();
     }
@@ -166,7 +173,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             waitForThreads();
 
             // now rec the data calling the correct method according to the mode
-            if (m_recMode.equalsIgnoreCase("TW"))
+            if (reconciliationMode.equalsIgnoreCase("TW"))
                 recData();
             else
                 oldRecData();
@@ -194,7 +201,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * Method recData.
      *
-     * @throws Exception
+     * @throws Exception if an unequal number of columns is passed.
      */
     private void recData() throws Exception {
 
@@ -282,16 +289,14 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                         if (o1 instanceof Double && o2 instanceof Double) {
                             // only look at rows greater than the absolute
                             // smallest value specified
-                            if (Math.abs(((Double) o1).doubleValue()) > smallestAbsoluteValue
+                            if (Math.abs((Double) o1) > smallestAbsoluteValue
                                     && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
-                                double percentageDiff = Math
-                                        .abs(((((Double) o1).doubleValue() - ((Double) o2)
-                                                .doubleValue()) / ((Double) o1)
-                                                .doubleValue()) * 100);
+                                double percentageDiff;
+                                percentageDiff = calculatePercentageDifference((Double) o1, (Double) o2);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs(((Double) o1)
-                                            .doubleValue()
-                                            - ((Double) o2).doubleValue());
+                                    double absDiff;
+                                    absDiff = Math.abs((Double) o1
+                                            - (Double) o2);
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -301,8 +306,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -315,13 +320,12 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             if (Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue
                                     && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
                                 double percentageDiff = Math
-                                        .abs(((((BigDecimal) o1).doubleValue() - ((Double) o2)
-                                                .doubleValue()) / ((BigDecimal) o1)
+                                        .abs(((((BigDecimal) o1).doubleValue() - (Double) o2) / ((BigDecimal) o1)
                                                 .doubleValue()) * 100);
                                 if (percentageDiff > tolerancePercentage) {
                                     double absDiff = Math.abs(((BigDecimal) o1)
                                             .doubleValue()
-                                            - ((Double) o2).doubleValue());
+                                            - (Double) o2);
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -331,8 +335,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -349,8 +353,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                                 .doubleValue()) / ((Double) o1)
                                                 .doubleValue()) * 100);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs(((Double) o1)
-                                            .doubleValue()
+                                    double absDiff = Math.abs((Double) o1
                                             - ((BigDecimal) o2).doubleValue());
                                     logDifference(
                                             (String) inputProperties1
@@ -361,8 +364,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -374,7 +377,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                 if (Math.abs(((Integer) o1).intValue()) > smallestAbsoluteValue
                                         && Math.abs(((Integer) o2).intValue()) > smallestAbsoluteValue) {
                                     int percentageDiff = Math
-                                            .abs(((((Integer) o1).intValue() - ((Integer) o2)
+                                            .abs((((Integer) o1 - ((Integer) o2)
                                                     .intValue()) / ((Integer) o1)
                                                     .intValue()) * 100);
                                     if (percentageDiff > tolerancePercentage) {
@@ -391,13 +394,13 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                                 input2Alias,
                                                 inputColumns2[input2CompareColumnPosition[i]],
                                                 o2,
-                                                String.valueOf(percentageDiff),
-                                                String.valueOf(absDiff));
+                                                valueOf(percentageDiff),
+                                                valueOf(absDiff));
                                         matchedRow = false;
                                     }
                                 }
                             } catch (ArithmeticException ae) {
-                                if (!((Integer) o1).equals(o2)) {
+                                if (!o1.equals(o2)) {
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -413,7 +416,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
                             }
                         } else if (o1 instanceof String && o2 instanceof String) {
-                            if (!(((String) o1).equals((String) o2))) {
+                            if (!o1.equals((String) o2)) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -428,7 +431,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                         } else if (o1 instanceof Boolean
                                 && o2 instanceof Boolean) {
 
-                            if (!((Boolean) o1).equals(o2)) {
+                            if (!(o1 == o2)) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -442,8 +445,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             }
                         } else if (o1 instanceof java.util.Date
                                 && o2 instanceof java.util.Date) {
-                            if (!(((java.util.Date) o1)
-                                    .equals((java.util.Date) o2))) {
+                            if (!(o1 == o2)) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -505,16 +507,16 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 String key = (String) inputIterator.next();
                 // for keys that are missing,show all the values that are
                 // actualy there, vs 'Missing'
-                for (int j = 0; j < input1CompareColumnPosition.length; j++) {
-                    Object o1 = (Object) ((ArrayList) inputData1.get(key))
-                            .get(input1CompareColumnPosition[j]);
+                for (int anInput1CompareColumnPosition : input1CompareColumnPosition) {
+                    Object o1 = ((ArrayList) inputData1.get(key))
+                            .get(anInput1CompareColumnPosition);
 
                     if ((o1 instanceof Double || o1 instanceof Integer || o1 instanceof String)) {
                         // only log a difference here, if o1 is <> 0.0, even if
                         // 02 is actually missing..
                         logDifference((String) inputProperties1.get("key"),
                                 key, input1Alias,
-                                inputColumns1[input1CompareColumnPosition[j]],
+                                inputColumns1[anInput1CompareColumnPosition],
                                 o1, input2Alias, "Missing", "Missing", "", "");
                     }
                 }
@@ -522,13 +524,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             inputIterator = inputData2.keySet().iterator();
             while (inputIterator.hasNext()) {
                 String key = (String) inputIterator.next();
-                // for keys that are missing,show all the values that are
-                // actualy there, vs 'Missing'
+                // for keys that are missing,show all the values that are actually there, vs 'Missing'
                 for (int j = 0; j < input2CompareColumnPosition.length; j++) {
-                    Object o1 = (Object) ((ArrayList) inputData2.get(key))
-                            .get(input2CompareColumnPosition[j]);
-
-                    if ((o1 instanceof Double || o1 instanceof Integer || o1 instanceof String)) {
+                    Object o1 = ((ArrayList) inputData2.get(key)).get(input2CompareColumnPosition[j]);
+                    if (((o1 instanceof Double) || (o1 instanceof Integer) || (o1 instanceof String))) {
                         // only log a difference here, if o1 is <> 0.0, even if
                         // 02 is actually missing..
                         logDifference((String) inputProperties2.get("key"),
@@ -549,6 +548,12 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 input1MatchedRows);
     }
 
+    private double calculatePercentageDifference(Double o1, Double o2) {
+        double percentageDiff;
+        percentageDiff = Math.abs(o1 - o2) / o1 * 100;
+        return percentageDiff;
+    }
+
     /**
      * Method recData.
      *
@@ -556,17 +561,15 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      */
     private void oldRecData() throws Exception {
 
-        String[] inputColumns1 = null;
-        String[] inputColumns2 = null;
+        String[] inputColumns1;
+        String[] inputColumns2;
+        HashMap inputData1;
+        HashMap inputData2;
+        Properties inputProperties1;
+        Properties inputProperties2;
 
-        HashMap inputData1 = null;
-        HashMap inputData2 = null;
-
-        Properties inputProperties1 = null;
-        Properties inputProperties2 = null;
-
-        String input1Alias = null;
-        String input2Alias = null;
+        String input1Alias;
+        String input2Alias;
 
         int input1MatchedRows = 0;
         float tolerancePercentage = 0.0f;
@@ -634,24 +637,22 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                     // deemed as matched
                     // if _all_ the columns selected to compare, match..
                     for (int i = 0; i < input1CompareColumnPosition.length; i++) {
-                        Object o1 = (Object) ((ArrayList) inputData1.get(key))
+                        Object o1 = ((ArrayList) inputData1.get(key))
                                 .get(input1CompareColumnPosition[i]);
-                        Object o2 = (Object) ((ArrayList) inputData2.get(key))
+                        Object o2 = ((ArrayList) inputData2.get(key))
                                 .get(input2CompareColumnPosition[i]);
 
                         if (o1 instanceof Double && o2 instanceof Double) {
                             // only look at rows greater than the absolute
                             // smallest value specified
-                            if (Math.abs(((Double) o1).doubleValue()) > smallestAbsoluteValue
-                                    && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
+                            if (Math.abs((Double) o1) > smallestAbsoluteValue
+                                    && Math.abs((Double) o2) > smallestAbsoluteValue) {
                                 double percentageDiff = Math
-                                        .abs(((((Double) o1).doubleValue() - ((Double) o2)
-                                                .doubleValue()) / ((Double) o1)
-                                                .doubleValue()) * 100);
+                                        .abs((((Double) o1 - (Double) o2) / ((Double) o1)) * 100);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs(((Double) o1)
-                                            .doubleValue()
-                                            - ((Double) o2).doubleValue());
+                                    double absDiff;
+                                    absDiff = Math.abs((Double) o1
+                                            - ((Double) o2));
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -661,8 +662,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -672,16 +673,16 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             // smallest value specified
                             // NSB - 16/6/04 - Added as Oracle returns Big
                             // Decimals
-                            if (Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue
-                                    && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
+                            if ((Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue)
+                                    && (Math.abs(((Double) o2)) > smallestAbsoluteValue)) {
                                 double percentageDiff = Math
                                         .abs(((((BigDecimal) o1).doubleValue() - ((Double) o2)
-                                                .doubleValue()) / ((BigDecimal) o1)
+                                        ) / ((BigDecimal) o1)
                                                 .doubleValue()) * 100);
                                 if (percentageDiff > tolerancePercentage) {
                                     double absDiff = Math.abs(((BigDecimal) o1)
                                             .doubleValue()
-                                            - ((Double) o2).doubleValue());
+                                            - ((Double) o2));
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -691,8 +692,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -721,8 +722,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                             o1,
                                             input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, String.valueOf(percentageDiff),
-                                            String.valueOf(absDiff));
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -734,13 +735,11 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                 if (Math.abs(((Integer) o1).intValue()) > smallestAbsoluteValue
                                         && Math.abs(((Integer) o2).intValue()) > smallestAbsoluteValue) {
                                     int percentageDiff = Math
-                                            .abs(((((Integer) o1).intValue() - ((Integer) o2)
-                                                    .intValue()) / ((Integer) o1)
+                                            .abs((((Integer) o1 - (Integer) o2) / ((Integer) o1)
                                                     .intValue()) * 100);
                                     if (percentageDiff > tolerancePercentage) {
-                                        int absDiff = Math.abs(((Integer) o1)
-                                                .intValue()
-                                                - ((Integer) o2).intValue());
+                                        int absDiff = Math.abs((Integer) o1
+                                                - (Integer) o2);
                                         logDifference(
                                                 (String) inputProperties1
                                                         .get("key"),
@@ -751,8 +750,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                                 input2Alias,
                                                 inputColumns2[input2CompareColumnPosition[i]],
                                                 o2,
-                                                String.valueOf(percentageDiff),
-                                                String.valueOf(absDiff));
+                                                valueOf(percentageDiff),
+                                                valueOf(absDiff));
                                         matchedRow = false;
                                     }
                                 }
@@ -837,8 +836,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                     }
 
                 } else {
-                    // for keys that are missing,show all the values that are
-                    // actualy there, vs 'Missing'
+                    // for keys that are missing,show all the values that are actually there, vs 'Missing'
                     for (int j = 0; j < input1CompareColumnPosition.length; j++) {
                         Object o1 = (Object) ((ArrayList) inputData1.get(key))
                                 .get(input1CompareColumnPosition[j]);
@@ -924,6 +922,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * load most of the properties in when the class initialises, to make the
      * log files ,look clearer
+     *
+     * @throws Exception
      */
     private void loadProperties() throws Exception {
         // load most of the parameters in at the beginning, as it looks neater
@@ -931,166 +931,120 @@ public class Recxx extends AbstractRecFeed implements Runnable {
         m_propertiesMap = new HashMap();
         Properties props = null;
 
+        String propertiesStub = format("%s.%s.", prefix, m_appName);
+
         int numberOfInputs = 2;
-        String tolerance = superProps.getProperty(prefix + "."
-                + m_appName + ".toleranceLevel", "0.0");
-        String handleNullsAsZero = superProps.getProperty(prefix
-                + "." + m_appName + ".handleNullsAsDefault", "true");
-        String smallestAbsoluteValue = superProps.getProperty(prefix
-                + "." + m_appName + ".smallestAbsoluteValue", "0.0001");
+        String tolerance = superProps.getProperty(propertiesStub + "toleranceLevel", "0.0");
+        String handleNullsAsZero = superProps.getProperty(propertiesStub + "handleNullsAsDefault", "true");
+        String smallestAbsoluteValue = superProps.getProperty(propertiesStub + "smallestAbsoluteValue", "0.0001");
 
-        m_delimiter = superProps.getProperty(prefix + "." + m_appName
-                + ".delimiter", " ");
+        m_delimiter = superProps.getProperty(propertiesStub + "delimiter", " ");
 
-        m_dpFormatter = new DecimalFormat(superProps.getProperty(
-                prefix + "." + m_appName + ".decimalPlacesPattern",
-                "#.00000000000"));
+        m_dpFormatter = new DecimalFormat(superProps.getProperty(propertiesStub + "decimalPlacesPattern", "#.00000000000"));
 
-        m_outputType = superProps.getProperty(prefix + "."
-                + m_appName + ".outputType", "csv");
+        m_outputType = superProps.getProperty(propertiesStub + "outputType", "csv");
 
-        // get the recMode property determining whether the reconciliation is
-        // one-way or two-way
-        String recM = superProps.getProperty(prefix + "." + m_appName
-                + ".reconciliationMode", "TW");
-        if (recM.equalsIgnoreCase("TW")) {
-            LOGGER.info("Performing two-way reconciliation...");
-        } else if (recM.equalsIgnoreCase("OW")) {
-            LOGGER.info("Performing one-way reconciliation...");
-            m_recMode = "OW";
-        } else {
-            LOGGER.info("Unrecognised reconciliationMode entry: " + recM
-                    + ", defaulting to performing a Two-way reconciliation...");
+        // get the recMode property determining whether the reconciliation is one-way or two-way
+        reconciliationMode = superProps.getProperty(propertiesStub + "reconciliationMode", TW.toString());
+        switch (ReconciliationMode.valueOf(reconciliationMode)) {
+            case OW:
+                LOGGER.info("Performing one-way reconciliation...");
+                reconciliationMode = OW.toString();
+                break;
+            case TW:
+                LOGGER.info("Performing two-way reconciliation...");
+                reconciliationMode = OW.toString();
+                break;
         }
 
+
         if (m_outputType.equals("csv")) {
-            FILE_LOCATION = superProps.getProperty(prefix + "."
-                    + m_appName + ".logger.csv.file");
-            FILE_DELIMITER = superProps.getProperty(prefix + "."
-                    + m_appName + ".logger.csv.file.delimiter", ",");
+            FILE_LOCATION = superProps.getProperty(propertiesStub + "logger.csv.file");
+            FILE_DELIMITER = superProps.getProperty(propertiesStub + "logger.csv.file.delimiter", CONSTANTS.DELIMITER);
         }
 
         // TODO remove the redundancies here!!
 
         for (int i = 1; i <= numberOfInputs; i++) {
-            String inputName = superProps.getProperty(prefix + "."
-                    + m_appName + ".inputSource" + i + ".name.alias");
-            String inputSource = superProps.getProperty(prefix + "."
-                    + m_appName + ".inputSource" + i + ".name.type");
+            String inputStub = propertiesStub + "inputSource" + i + ".";
+            String inputAlias = superProps.getProperty(inputStub + "name.alias");
+            if (inputAlias == null) {
+                throw new PropertiesFileException("No alias found for Reconciliation Source: " + inputStub + "name.alias");
+            }
+            String inputType = superProps.getProperty(inputStub + "name.type");
+            if (inputType == null) {
+                throw new PropertiesFileException("No type found for Reconciliation Source: " + inputStub + "name.type");
+            }
 
             props = new Properties();
-            props.setProperty("alias", inputName);
-            props.setProperty("type", inputSource);
+            props.setProperty("alias", inputAlias);
+            props.setProperty("type", inputType);
             props.setProperty("tolerance", tolerance);
             props.setProperty("handleNullsAsZero", handleNullsAsZero);
             props.setProperty("smallestAbsoluteValue", smallestAbsoluteValue);
-            props.setProperty("order", String.valueOf(i));
+            props.setProperty("order", valueOf(i));
             props.setProperty("delimiter", m_delimiter);
 
-            if (inputSource.equals(DB_INPUT)) {
+            if (inputType.equals(DB_INPUT)) {
                 // Database source
-                props.setProperty(
-                        "uid",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i + ".db.uid"));
-                props.setProperty(
-                        "pwd",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i + ".db.pwd"));
-                props.setProperty(
-                        "url",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".db.jdbc.url"));
-                props.setProperty(
-                        "driver",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".db.jdbc.driver"));
-                props.setProperty(
-                        "sql",
-                        loadStringPropertyFromFile(
-                                superProps.getProperty(prefix + "."
-                                        + m_appName + ".inputSource" + i
-                                        + ".db.sql"), "select"));
-                props.setProperty(
-                        "key",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i + ".db.key"));
+                props.setProperty("uid", superProps.getProperty(inputStub + "db.uid"));
+                props.setProperty("pwd", superProps.getProperty(inputStub + "db.pwd"));
+                props.setProperty("url", superProps.getProperty(inputStub + "db.jdbc.url"));
+                props.setProperty("driver", superProps.getProperty(inputStub + "db.jdbc.driver"));
+                props.setProperty("sql", loadStringPropertyFromFile(superProps.getProperty(inputStub + "db.sql"), "select"));
+                props.setProperty("key", superProps.getProperty(inputStub + "db.key"));
                 props.setProperty("aggregate", new String("false"));
 
-                m_propertiesMap.put(inputName, props);
-            } else if (inputSource.equals(FILE_INPUT)) {
+                m_propertiesMap.put(inputAlias, props);
+            } else if (inputType.equals(FILE_INPUT)) {
                 // delimited file source
-                props.setProperty(
-                        "filePath",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.filePath"));
-                props.setProperty(
-                        "delimiter",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.delimiter", ","));
-                props.setProperty(
-                        "columnsSupplied",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.firstRowColumns", "true"));
-                props.setProperty(
-                        "dataTypesSupplied",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.secondRowDataTypes", "false"));
+                String filePath = superProps.getProperty(inputStub + "file.filePath");
+                if (filePath == null) {
+                    throw new PropertiesFileException("Cannot continue as file hasn't been set: "
+                            + inputStub + "file.filePath");
+                }
+                props.setProperty("filePath", filePath);
+                props.setProperty("delimiter", superProps.getProperty(inputStub + "file.delimiter", ","));
+                props.setProperty("columnsSupplied", superProps.getProperty(inputStub + "file.firstRowColumns", "true"));
+                props.setProperty("dataTypesSupplied", superProps.getProperty(inputStub + "file.secondRowDataTypes", "false"));
 
                 if (!props.getProperty("columnsSupplied").equals("true")) {
                     // then the columns have to be specified in a property,
                     // seperated by spaces (just like the key)
-                    props.setProperty(
-                            "columns",
-                            superProps.getProperty(prefix + "."
-                                    + m_appName + ".inputSource" + i
-                                    + ".file.columns"));
+                    String fileColumns = superProps.getProperty(inputStub + "file.columns");
+                    if (fileColumns == null) {
+                        throw new PropertiesFileException(inputStub + "file.firstRowColumns has been set to false but "
+                                + inputStub + "file.columns hasn't been specified.");
+                    }
+                    props.setProperty("columns", fileColumns);
                 }
+                String columnDataTypes = superProps.getProperty(inputStub + "file.columnDataTypes");
+                if (columnDataTypes == null) {
+                    throw new PropertiesFileException(inputStub + "file.columnDataTypes needs to specifiy the datatypes");
+                }
+                props.setProperty("columnDataTypes", columnDataTypes);
+                props.setProperty("dateFormat", superProps.getProperty(inputStub + "file.columnDataTypes.date.format", "yyyyMMdd"));
+                String key = superProps.getProperty(inputStub + "file.key");
+                if (key == null) {
+                    throw new PropertiesFileException("No record key supplied " + inputStub + "file.key");
+                }
+                props.setProperty("key", key);
+                String columnsToCompare = superProps.getProperty(inputStub + "file.columnsToCompare");
+                if (columnsToCompare == null) {
+                    throw new PropertiesFileException("No Columns To Compare supplied " + inputStub + "file.columnsToCompare");
+                }
+                props.setProperty("columnsToCompare", columnsToCompare);
+                props.setProperty("aggregate", superProps.getProperty(inputStub + "file.aggregate", "false"));
+                props.setProperty("appendDelimiter", superProps.getProperty(inputStub + "file.appendDelimiter", "false"));
 
-                props.setProperty(
-                        "columnDataTypes",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.columnDataTypes"));
-                props.setProperty("dateFormat", superProps.getProperty(
-                        prefix + "." + m_appName + ".inputSource" + i
-                                + ".file.columnDataTypes.date.format",
-                        "yyyyMMdd"));
-                props.setProperty(
-                        "key",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i + ".file.key"));
-                props.setProperty(
-                        "columnsToCompare",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.columnsToCompare"));
-                props.setProperty(
-                        "aggregate",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.aggregate", "false"));
-                props.setProperty(
-                        "appendDelimiter",
-                        superProps.getProperty(prefix + "."
-                                + m_appName + ".inputSource" + i
-                                + ".file.appendDelimiter", "false"));
-
-                m_propertiesMap.put(inputName, props);
+                m_propertiesMap.put(inputAlias, props);
             } else {
-                throw new Exception("Invalid input source	" + inputSource
-                        + " - can only be File or DB");
+                throw new PropertiesFileException("Invalid input source	" + inputType + " - can only be File or DB");
             }
         }
 
         if (m_propertiesMap.size() != numberOfInputs)
-            throw new Exception(numberOfInputs + " were not loaded...!");
+            throw new PropertiesFileException(numberOfInputs + " were not loaded...!");
     }
 
     /**
@@ -1382,5 +1336,6 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             m_loggerInit = true;
         }
     }
+
 
 }

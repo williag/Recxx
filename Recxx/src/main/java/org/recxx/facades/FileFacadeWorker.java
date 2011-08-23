@@ -10,10 +10,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,8 +23,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     private String m_ColumnNames = "";
     private static SimpleDateFormat m_Dtf = new SimpleDateFormat();
 
-    private int[] m_KeyPositions;
-    private int[] m_ComparePositions;
+    private List<Integer> m_KeyPositions;
+    private List<Integer> m_ComparePositions;
     private String[] m_KeyColumns;
     private String[] m_CompareColumns;
     private String[] m_ReducedColumns;
@@ -158,10 +155,9 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
         int count = 0;
         int[] compareColumnPosition = null;
 
-        boolean handleNullsAsZero = (Boolean.valueOf(prop
-                .getProperty("handleNullsAsZero"))).booleanValue();
-        boolean aggregate = (Boolean.valueOf(prop.getProperty("aggregate")))
-                .booleanValue();
+        boolean handleNullsAsZero = Boolean.valueOf(prop
+                .getProperty("handleNullsAsZero"));
+        boolean aggregate = Boolean.valueOf(prop.getProperty("aggregate"));
 
         getColumnCount(br);
 
@@ -170,22 +166,21 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
 
         columns = columns;
 
-        m_KeyColumns = convertStringKeyToArray(key,
-                m_Properties.getProperty("delimiter", " "));
+        m_KeyColumns = convertStringKeyToArray(key);
         m_CompareColumns = convertStringKeyToArray(
-                m_Properties.getProperty("columnsToCompare"),
-                m_Properties.getProperty("delimiter", " "));
+                m_Properties.getProperty("columnsToCompare"));
         // m_ReducedColumns = addArrays(m_KeyColumns,m_CompareColumns);
         m_ReducedColumns = addArraysProperly(columns, m_KeyColumns,
                 m_CompareColumns);
 
-        // set the positions of the key and the columns to compare....anything
-        // else
-        // will not be looked at...
-        m_KeyPositions = getColumnsPosition(m_ReducedColumns, m_KeyColumns);
-        m_ComparePositions = getColumnsPosition(m_ReducedColumns, m_CompareColumns);
 
-        if (checkKeyColumns(m_KeyColumns, columns)) {
+        if (keysPresentInColumns(m_KeyColumns, columns)) {
+            // set the positions of the key and the columns to compare....anything
+            // else
+            // will not be looked at...
+            m_KeyPositions = getColumnsPosition(m_ReducedColumns, m_KeyColumns);
+            m_ComparePositions = getColumnsPosition(m_ReducedColumns, m_CompareColumns);
+
             // the key columns match with the meta data in the ResultSet so
             // proceed...
 
@@ -204,6 +199,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
                     int columnCounter = 0;
                     StringTokenizer st = new StringTokenizer(correctLine(line),
                             m_Properties.getProperty("delimiter", " "));
+
 
                     while (st.hasMoreTokens()) {
                         // System.err.println(st.countTokens());

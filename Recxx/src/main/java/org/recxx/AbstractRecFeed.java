@@ -1,11 +1,18 @@
 package org.recxx;
 
+import com.sun.istack.internal.Nullable;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,7 +22,7 @@ import static java.lang.Boolean.valueOf;
 /**
  * Abstract class created to represent common methods for handling a
  * java.sql.ResultSet, such as processing it, creating keys and handling the
- * ResultSetMetaData. All FacadeWorker class's should extend from this and make
+ * ResultSetMetaData All FacadeWorker class's should extend from this and make
  * a concrete implementation.
  */
 public abstract class AbstractRecFeed {
@@ -28,7 +35,7 @@ public abstract class AbstractRecFeed {
     protected Properties superProps = null;
 
     protected boolean keyColumnPositionsSet = false;
-    protected int[] keyColumnPositions;
+    protected List<Integer> keyColumnPositions;
     protected String[] columns;
     protected HashMap data;
 
@@ -48,49 +55,67 @@ public abstract class AbstractRecFeed {
      * @param propertiesFile location of properties file to be used
      */
     public void init(String prefix, String propertiesFile) {
+        File file = new File(propertiesFile);
+        if (!file.exists() || !file.canRead()) {
+            throw new RuntimeException("cannot find or read properties file please check " + propertiesFile);
+        }
         this.propertiesFile = propertiesFile;
         this.prefix = prefix;
         props = new Properties();
         props.getProperty(propertiesFile);
-        superProps = new Properties(props);
+        superProps = new Properties();
+        try {
+            superProps.load(new FileInputStream(file));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("cannot find or read properties file please check " + propertiesFile);
+        } catch (IOException ioe) {
+            throw new RuntimeException("problem loading properties file " + propertiesFile);
+        }
     }
 
     /**
      * Checks to see if the columns specified in the key[], are in the columns[]
      *
-     * @param key     key to look for in the data set
-     * @param columns columns to use in the reconcilaltion
+     * @param keys    key to look for in the data set
+     * @param columns columns to use in the reconciliation
      * @return true if the key is in columns, false otherwise.
      */
-    public static boolean checkKeyColumns(String[] key, String[] columns) {
-        boolean containsKey = true;
-        boolean[] keyChecks = new boolean[key.length];
-
-        for (int j = 0; j < key.length; j++) {
-            for (String column : columns) {
-                if (key[j].trim().equalsIgnoreCase(column))
-                    keyChecks[j] = true;
+    public static boolean keysPresentInColumns(String[] keys, String[] columns) {
+        boolean allKeysPresent = true;
+        for (String key : keys) {
+            if (!containsKey(columns, key)) {
+                allKeysPresent = false;
             }
         }
-        for (boolean keyCheck : keyChecks) {
-            if (!keyCheck)
-                containsKey = false;
+        return allKeysPresent;
+    }
+
+    private static boolean containsKey(String[] columns, String key) {
+        boolean columnExists = false;
+        for (String column : columns) {
+            if (key.equalsIgnoreCase(column)) {
+                columnExists = true;
+            }
         }
-        return containsKey;
+        return columnExists;
     }
 
     /**
      * Converts the string key back into an array of key columns
      *
-     * @param key       key to convert
+     * @param keys      key to convert
      * @param delimiter used for the split
      * @return String[]
      */
-    public static String[] convertStringKeyToArray(String key, String delimiter) {
-        if (delimiter == null)
-            delimiter = " ";
+    public static String[] convertStringKeyToArray(String keys, @Nullable String delimiter) {
+        if (delimiter == null) {
+            delimiter = CONSTANTS.DELIMITER;
+        }
+        return keys.split(delimiter);
+    }
 
-        return key.split(delimiter);
+    public static String[] convertStringKeyToArray(String keys) {
+        return convertStringKeyToArray(keys, null);
     }
 
     /**
@@ -100,7 +125,9 @@ public abstract class AbstractRecFeed {
      * @return columns names of the columns
      * @throws java.sql.SQLException SQL Error
      */
-    public static String[] getColumnsData(ResultSetMetaData meta) throws SQLException {
+    public static String[] getColumnsData
+    (ResultSetMetaData
+             meta) throws SQLException {
         // pull out the data columns first
         String[] columns = new String[meta.getColumnCount()];
         for (int j = 1; j <= meta.getColumnCount(); j++) {
@@ -118,7 +145,9 @@ public abstract class AbstractRecFeed {
      * @return columns return the column types and the names in an 2 column array.
      * @throws java.sql.SQLException SQL Error
      */
-    public static String[] getColumnsClassNameData(ResultSetMetaData meta)
+    public static String[] getColumnsClassNameData
+    (ResultSetMetaData
+             meta)
             throws SQLException {
         // pull out the data columns first
         String[] columns = new String[meta.getColumnCount()];
@@ -139,6 +168,7 @@ public abstract class AbstractRecFeed {
      * @param row        data row
      * @return String    a unique key
      */
+
     public String generateKey(String[] columns, String[] keyColumns,
                               ArrayList row) {
         String key = "";
@@ -170,17 +200,17 @@ public abstract class AbstractRecFeed {
      * @param keyColumns key columns
      * @return int[]      positions of key columns in the column[]
      */
-    public int[] getColumnsPosition(String[] columns, String[] keyColumns) {
+    public static List<Integer> getColumnsPosition(String[] columns, String[] keyColumns) {
         // first time in, set the positions of the key in relation to the data
-        int[] positions = new int[keyColumns.length];
-
-        for (int i = 0; i < keyColumns.length; i++) {
+        ArrayList<Integer> positions = new ArrayList<Integer>();
+        for (String key : keyColumns) {
             for (int j = 0; j < columns.length; j++) {
-                if (columns[j].equalsIgnoreCase(keyColumns[i]))
-                    positions[i] = j;
+                if (key.equalsIgnoreCase(columns[j].trim())) {
+                    positions.add(j);
+                    break;
+                }
             }
         }
-
         return positions;
     }
 
@@ -214,7 +244,7 @@ public abstract class AbstractRecFeed {
         String[] keyColumns = convertStringKeyToArray(key,
                 prop.getProperty("aggregate", " "));
 
-        if (checkKeyColumns(keyColumns, columns)) {
+        if (keysPresentInColumns(keyColumns, columns)) {
             // the key columns match with the meta data in the ResultSet so
             // proceed...
 
@@ -312,12 +342,10 @@ public abstract class AbstractRecFeed {
 
         try {
             for (int i = 0; i < compareColumnPosition.length; i++) {
-                double aggregatedValue = ((Double) existingRow
-                        .get(compareColumnPosition[i])).doubleValue()
-                        + ((Double) row.get(compareColumnPosition[i]))
-                        .doubleValue();
-                existingRow.set(compareColumnPosition[i], new Double(
-                        aggregatedValue));
+                double aggregatedValue = (Double) existingRow
+                        .get(compareColumnPosition[i])
+                        + (Double) row.get(compareColumnPosition[i]);
+                existingRow.set(compareColumnPosition[i], aggregatedValue);
             }
         } catch (ClassCastException cse) {
             LOGGER.log(Level.WARNING, cse.getMessage(), cse);
@@ -336,16 +364,16 @@ public abstract class AbstractRecFeed {
      *
      * @param columns    columns used for compare
      * @param keyColumns columns used to match records.
-     * @return int[]
+     * @return Integer[]
      */
     public int[] getCompareColumnsPosition(String[] columns, String[] keyColumns) {
         // get the location of the keys
-        int[] keyPositions = getColumnsPosition(columns, keyColumns);
+        List<Integer> keyPositions = getColumnsPosition(columns, keyColumns);
 
         // now work out the location of the columns to compare by assuming
         // everything that isn't a key
         // is a column to compare
-        int[] comparePositions = new int[columns.length - keyPositions.length];
+        int[] comparePositions = new int[columns.length - keyPositions.size()];
         int count = 0;
 
         for (int i = 0; i < columns.length; i++) {
