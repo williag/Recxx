@@ -1,4 +1,4 @@
-package org.recxx;
+package org.recxx.utils;
 
 /**
  * Created by Shaine Ismail.

@@ -1,6 +1,6 @@
 package org.recxx;
 
-import com.sun.istack.internal.Nullable;
+import org.recxx.utils.ArrayUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -74,51 +74,6 @@ public abstract class AbstractRecFeed {
     }
 
     /**
-     * Checks to see if the columns specified in the key[], are in the columns[]
-     *
-     * @param keys    key to look for in the data set
-     * @param columns columns to use in the reconciliation
-     * @return true if the key is in columns, false otherwise.
-     */
-    public static boolean keysPresentInColumns(String[] keys, String[] columns) {
-        boolean allKeysPresent = true;
-        for (String key : keys) {
-            if (!containsKey(columns, key)) {
-                allKeysPresent = false;
-            }
-        }
-        return allKeysPresent;
-    }
-
-    private static boolean containsKey(String[] columns, String key) {
-        boolean columnExists = false;
-        for (String column : columns) {
-            if (key.equalsIgnoreCase(column)) {
-                columnExists = true;
-            }
-        }
-        return columnExists;
-    }
-
-    /**
-     * Converts the string key back into an array of key columns
-     *
-     * @param keys      key to convert
-     * @param delimiter used for the split
-     * @return String[]
-     */
-    public static String[] convertStringKeyToArray(String keys, @Nullable String delimiter) {
-        if (delimiter == null) {
-            delimiter = CONSTANTS.DELIMITER;
-        }
-        return keys.split(delimiter);
-    }
-
-    public static String[] convertStringKeyToArray(String keys) {
-        return convertStringKeyToArray(keys, null);
-    }
-
-    /**
      * returns an array of column names, given the ResultSetMetaData.
      *
      * @param meta the meta data to use for the column extraction
@@ -145,13 +100,9 @@ public abstract class AbstractRecFeed {
      * @return columns return the column types and the names in an 2 column array.
      * @throws java.sql.SQLException SQL Error
      */
-    public static String[] getColumnsClassNameData
-    (ResultSetMetaData
-             meta)
-            throws SQLException {
+    public static String[] getColumnsClassNameData(ResultSetMetaData meta) throws SQLException {
         // pull out the data columns first
         String[] columns = new String[meta.getColumnCount()];
-
         for (int j = 1; j <= meta.getColumnCount(); j++) {
             columns[j - 1] = meta.getColumnClassName(j);
         }
@@ -168,50 +119,22 @@ public abstract class AbstractRecFeed {
      * @param row        data row
      * @return String    a unique key
      */
-
     public String generateKey(String[] columns, String[] keyColumns,
                               ArrayList row) {
-        String key = "";
-
         if (!keyColumnPositionsSet) {
-            // first time in, set the positions of the key in relation to the
-            // data
-            keyColumnPositions = getColumnsPosition(columns, keyColumns);
+            // first time in, set the positions of the key in relation to the data
+            keyColumnPositions = ArrayUtils.getColumnsPosition(columns, keyColumns);
             keyColumnPositionsSet = true;
         }
-
         // now generate a key from the row of data...
+        StringBuilder sb = new StringBuilder();
         for (int keyColumnPosition : keyColumnPositions) {
             Object o = row.get(keyColumnPosition);
-
-            if (o != null)
-                key = key + o.toString() + "+";
-            else
-                key = null;
-        }
-
-        return key;
-    }
-
-    /**
-     * return an int[] of the positions of the keyColumns, in the columns[]
-     *
-     * @param columns    column names
-     * @param keyColumns key columns
-     * @return int[]      positions of key columns in the column[]
-     */
-    public static List<Integer> getColumnsPosition(String[] columns, String[] keyColumns) {
-        // first time in, set the positions of the key in relation to the data
-        ArrayList<Integer> positions = new ArrayList<Integer>();
-        for (String key : keyColumns) {
-            for (int j = 0; j < columns.length; j++) {
-                if (key.equalsIgnoreCase(columns[j].trim())) {
-                    positions.add(j);
-                    break;
-                }
+            if (o != null) {
+                sb.append(o.toString()).append("+");
             }
         }
-        return positions;
+        return sb.toString();
     }
 
     /**
@@ -241,17 +164,17 @@ public abstract class AbstractRecFeed {
 
         this.columns = columns;
 
-        String[] keyColumns = convertStringKeyToArray(key,
+        String[] keyColumns = ArrayUtils.convertStringKeyToArray(key,
                 prop.getProperty("aggregate", " "));
 
-        if (keysPresentInColumns(keyColumns, columns)) {
+        if (ArrayUtils.keysPresentInColumns(keyColumns, columns)) {
             // the key columns match with the meta data in the ResultSet so
             // proceed...
 
             // if we're aggregating, get the names of the compare columns to
             // bucket
             if (aggregate)
-                compareColumnPosition = getCompareColumnsPosition(this.columns,
+                compareColumnPosition = ArrayUtils.getCompareColumnsPosition(this.columns,
                         keyColumns);
 
             while (rs.next()) {
@@ -292,7 +215,7 @@ public abstract class AbstractRecFeed {
 
                 String mapKey = generateKey(columns, keyColumns, row);
 
-                if (mapKey != null) {
+                if (mapKey.equals("")) {
                     if (!data.containsKey(mapKey)) {
                         data.put(mapKey, row);
                     } else {
@@ -336,16 +259,14 @@ public abstract class AbstractRecFeed {
      * @param row
      * @param mapKey
      */
-    public void aggregateData(HashMap data, int[] compareColumnPosition,
-                              ArrayList row, String mapKey) throws Exception {
+    public void aggregateData(HashMap data, int[] compareColumnPosition, ArrayList row, String mapKey) throws Exception {
         ArrayList existingRow = (ArrayList) data.get(mapKey);
 
         try {
             for (int i = 0; i < compareColumnPosition.length; i++) {
-                double aggregatedValue = (Double) existingRow
-                        .get(compareColumnPosition[i])
+                double value = (Double) existingRow.get(compareColumnPosition[i])
                         + (Double) row.get(compareColumnPosition[i]);
-                existingRow.set(compareColumnPosition[i], aggregatedValue);
+                existingRow.set(compareColumnPosition[i], value);
             }
         } catch (ClassCastException cse) {
             LOGGER.log(Level.WARNING, cse.getMessage(), cse);
@@ -356,42 +277,4 @@ public abstract class AbstractRecFeed {
         }
     }
 
-    /**
-     * return the position of the compare columns. By definition everything that
-     * isn't a key column is a compare column to make it easy to setup big
-     * queries. Of course, this means that the columns to compare must be in the
-     * same order
-     *
-     * @param columns    columns used for compare
-     * @param keyColumns columns used to match records.
-     * @return Integer[]
-     */
-    public int[] getCompareColumnsPosition(String[] columns, String[] keyColumns) {
-        // get the location of the keys
-        List<Integer> keyPositions = getColumnsPosition(columns, keyColumns);
-
-        // now work out the location of the columns to compare by assuming
-        // everything that isn't a key
-        // is a column to compare
-        int[] comparePositions = new int[columns.length - keyPositions.size()];
-        int count = 0;
-
-        for (int i = 0; i < columns.length; i++) {
-            boolean columnFound = false;
-            for (int keyPosition : keyPositions) {
-                if (i == keyPosition) {
-                    columnFound = true;
-                    break;
-                }
-            }
-
-            if (!columnFound) {
-                comparePositions[count] = i;
-                count++;
-            }
-        }
-
-        return comparePositions;
-
-    }
 }

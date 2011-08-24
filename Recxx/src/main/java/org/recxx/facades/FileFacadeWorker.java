@@ -2,6 +2,7 @@ package org.recxx.facades;
 
 import org.recxx.AbstractRecFeed;
 import org.recxx.Recxx;
+import org.recxx.utils.ArrayUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -164,22 +165,20 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
         String[] columns = getColumnsData(m_ColumnNames);
         String[] columnsClassNames = getColumnsClassNameData();
 
-        columns = columns;
-
-        m_KeyColumns = convertStringKeyToArray(key);
-        m_CompareColumns = convertStringKeyToArray(
+        m_KeyColumns = ArrayUtils.convertStringKeyToArray(key);
+        m_CompareColumns = ArrayUtils.convertStringKeyToArray(
                 m_Properties.getProperty("columnsToCompare"));
         // m_ReducedColumns = addArrays(m_KeyColumns,m_CompareColumns);
         m_ReducedColumns = addArraysProperly(columns, m_KeyColumns,
                 m_CompareColumns);
 
 
-        if (keysPresentInColumns(m_KeyColumns, columns)) {
+        if (ArrayUtils.keysPresentInColumns(m_KeyColumns, columns)) {
             // set the positions of the key and the columns to compare....anything
             // else
             // will not be looked at...
-            m_KeyPositions = getColumnsPosition(m_ReducedColumns, m_KeyColumns);
-            m_ComparePositions = getColumnsPosition(m_ReducedColumns, m_CompareColumns);
+            m_KeyPositions = ArrayUtils.getColumnsPosition(m_ReducedColumns, m_KeyColumns);
+            m_ComparePositions = ArrayUtils.getColumnsPosition(m_ReducedColumns, m_CompareColumns);
 
             // the key columns match with the meta data in the ResultSet so
             // proceed...
@@ -187,8 +186,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
             // if we're aggregating, get the names of the compare columns to
             // bucket
             if (aggregate)
-                compareColumnPosition = getCompareColumnsPosition(
-                        m_ReducedColumns, m_KeyColumns);
+                compareColumnPosition = ArrayUtils.getCompareColumnsPosition(m_ReducedColumns, m_KeyColumns);
 
             // check if the stream is empty yet
             while (!fileEmpty) {
@@ -231,7 +229,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
                     String mapKey = generateKey(m_ReducedColumns, m_KeyColumns,
                             row);
 
-                    if (mapKey != null) {
+                    if ("".equals(mapKey)) {
                         if (!data.containsKey(mapKey)) {
                             data.put(mapKey, row);
                         } else {
@@ -458,7 +456,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
             try {
                 return m_Dtf.parse((String) o);
             } catch (ParseException pe) {
-                LOGGER.log(Level.SEVERE, "Problem formating date " + (String) o
+                LOGGER.log(Level.SEVERE, "Problem formatting date " + (String) o
                         + " using pattern "
                         + m_Properties.getProperty("dateFormat"), pe);
             }
@@ -511,26 +509,6 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
         }
 
         return validColumn;
-    }
-
-    /**
-     * must be an easier way...? my brain has stopped..
-     *
-     * @param array1
-     * @param array2
-     * @return the full string array
-     */
-    private String[] addArrays(String[] array1, String[] array2) {
-        String[] finalArray = new String[array1.length + array2.length];
-
-        for (int i = 0; i < array1.length; i++) {
-            finalArray[i] = array1[i];
-        }
-        for (int j = 0; j < array2.length; j++) {
-            finalArray[array1.length + j] = array2[j];
-        }
-
-        return finalArray;
     }
 
 }

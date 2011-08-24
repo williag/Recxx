@@ -1,4 +1,6 @@
-package org.recxx;
+package org.recxx.writer;
+
+import org.recxx.AbstractRecFeed;
 
 import java.io.*;
 import java.text.SimpleDateFormat;

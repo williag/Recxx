@@ -4,6 +4,10 @@ import org.recxx.exception.PropertiesFileException;
 import org.recxx.facades.DatabaseFacadeWorker;
 import org.recxx.facades.FileFacadeWorker;
 import org.recxx.facades.RecxxWorker;
+import org.recxx.utils.ArrayUtils;
+import org.recxx.utils.CONSTANTS;
+import org.recxx.utils.ReconciliationMode;
+import org.recxx.writer.CSVLogger;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -16,8 +20,8 @@ import java.util.logging.Logger;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static org.recxx.ReconciliationMode.OW;
-import static org.recxx.ReconciliationMode.TW;
+import static org.recxx.utils.ReconciliationMode.OW;
+import static org.recxx.utils.ReconciliationMode.TW;
 
 /**
  * Generic SQL based reconciliation tool to allow comparison between data
@@ -238,13 +242,13 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             // need a position of the compare columns in the array - do this by
             // making every column which isn't a
             // key column, a compare column
-            int[] input1CompareColumnPosition = getCompareColumnsPosition(
+            int[] input1CompareColumnPosition = ArrayUtils.getCompareColumnsPosition(
                     inputColumns1,
-                    convertStringKeyToArray(
+                    ArrayUtils.convertStringKeyToArray(
                             (String) inputProperties1.get("key"), m_delimiter));
-            int[] input2CompareColumnPosition = getCompareColumnsPosition(
+            int[] input2CompareColumnPosition = ArrayUtils.getCompareColumnsPosition(
                     inputColumns2,
-                    convertStringKeyToArray(
+                    ArrayUtils.convertStringKeyToArray(
                             (String) inputProperties2.get("key"), m_delimiter));
 
             input1Alias = (String) inputProperties1.get("alias");
@@ -505,8 +509,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             inputIterator = inputData1.keySet().iterator();
             while (inputIterator.hasNext()) {
                 String key = (String) inputIterator.next();
-                // for keys that are missing,show all the values that are
-                // actualy there, vs 'Missing'
+                // for keys that are missing,show all the values that are actually there, vs 'Missing'
                 for (int anInput1CompareColumnPosition : input1CompareColumnPosition) {
                     Object o1 = ((ArrayList) inputData1.get(key))
                             .get(anInput1CompareColumnPosition);
@@ -578,31 +581,21 @@ public class Recxx extends AbstractRecFeed implements Runnable {
         LOGGER.info("Starting to reconcile data sources...");
 
         if (m_dataToCompare.size() >= 2) {
-            inputColumns1 = (String[]) ((HashMap) m_dataToCompare
-                    .get("1")).get(COLUMNS);
-            inputData1 = (HashMap) ((HashMap) m_dataToCompare.get(
-                    "1")).get(DATA);
-            inputProperties1 = (Properties) ((HashMap) m_dataToCompare
-                    .get("1")).get(PROPERTIES);
+            inputColumns1 = (String[]) ((HashMap) m_dataToCompare.get("1")).get(COLUMNS);
+            inputData1 = (HashMap) ((HashMap) m_dataToCompare.get("1")).get(DATA);
+            inputProperties1 = (Properties) ((HashMap) m_dataToCompare.get("1")).get(PROPERTIES);
 
-            inputColumns2 = (String[]) ((HashMap) m_dataToCompare
-                    .get("2")).get(COLUMNS);
-            inputData2 = (HashMap) ((HashMap) m_dataToCompare.get(
-                    "2")).get(DATA);
-            inputProperties2 = (Properties) ((HashMap) m_dataToCompare
-                    .get("2")).get(PROPERTIES);
+            inputColumns2 = (String[]) ((HashMap) m_dataToCompare.get("2")).get(COLUMNS);
+            inputData2 = (HashMap) ((HashMap) m_dataToCompare.get("2")).get(DATA);
+            inputProperties2 = (Properties) ((HashMap) m_dataToCompare.get("2")).get(PROPERTIES);
 
             // need a position of the compare columns in the array - do this by
             // making every column which isn't a
             // key column, a compare column
-            int[] input1CompareColumnPosition = getCompareColumnsPosition(
-                    inputColumns1,
-                    convertStringKeyToArray(
-                            (String) inputProperties1.get("key"), m_delimiter));
-            int[] input2CompareColumnPosition = getCompareColumnsPosition(
-                    inputColumns2,
-                    convertStringKeyToArray(
-                            (String) inputProperties2.get("key"), m_delimiter));
+            int[] input1CompareColumnPosition = ArrayUtils.getCompareColumnsPosition(inputColumns1,
+                    ArrayUtils.convertStringKeyToArray((String) inputProperties1.get("key"), m_delimiter));
+            int[] input2CompareColumnPosition = ArrayUtils.getCompareColumnsPosition(inputColumns2,
+                    ArrayUtils.convertStringKeyToArray((String) inputProperties2.get("key"), m_delimiter));
 
             input1Alias = (String) inputProperties1.get("alias");
             input2Alias = (String) inputProperties2.get("alias");
@@ -613,10 +606,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                         + input2CompareColumnPosition.length);
 
             // now set the tolerance level as a percentage
-            tolerancePercentage = Float.parseFloat(((String) inputProperties1
-                    .get("tolerance")));
-            smallestAbsoluteValue = Float.parseFloat(((String) inputProperties1
-                    .get("smallestAbsoluteValue")));
+            tolerancePercentage = Float.parseFloat(((String) inputProperties1.get("tolerance")));
+            smallestAbsoluteValue = Float.parseFloat(((String) inputProperties1.get("smallestAbsoluteValue")));
 
             Iterator inputIterator = inputData1.keySet().iterator();
 
@@ -637,63 +628,41 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                     // deemed as matched
                     // if _all_ the columns selected to compare, match..
                     for (int i = 0; i < input1CompareColumnPosition.length; i++) {
-                        Object o1 = ((ArrayList) inputData1.get(key))
-                                .get(input1CompareColumnPosition[i]);
-                        Object o2 = ((ArrayList) inputData2.get(key))
-                                .get(input2CompareColumnPosition[i]);
+                        Object o1 = ((ArrayList) inputData1.get(key)).get(input1CompareColumnPosition[i]);
+                        Object o2 = ((ArrayList) inputData2.get(key)).get(input2CompareColumnPosition[i]);
 
                         if (o1 instanceof Double && o2 instanceof Double) {
-                            // only look at rows greater than the absolute
-                            // smallest value specified
+                            // only look at rows greater than the absolute smallest value specified
                             if (Math.abs((Double) o1) > smallestAbsoluteValue
                                     && Math.abs((Double) o2) > smallestAbsoluteValue) {
-                                double percentageDiff = Math
-                                        .abs((((Double) o1 - (Double) o2) / ((Double) o1)) * 100);
+                                double percentageDiff = Math.abs((((Double) o1 - (Double) o2) / ((Double) o1)) * 100);
                                 if (percentageDiff > tolerancePercentage) {
                                     double absDiff;
-                                    absDiff = Math.abs((Double) o1
-                                            - ((Double) o2));
-                                    logDifference(
-                                            (String) inputProperties1
-                                                    .get("key"),
-                                            key,
-                                            input1Alias,
+                                    absDiff = Math.abs((Double) o1 - ((Double) o2));
+                                    logDifference((String) inputProperties1.get("key"),
+                                            key, input1Alias,
                                             inputColumns1[input1CompareColumnPosition[i]],
-                                            o1,
-                                            input2Alias,
+                                            o1, input2Alias,
                                             inputColumns2[input2CompareColumnPosition[i]],
                                             o2, valueOf(percentageDiff),
                                             valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
-                        } else if (o1 instanceof BigDecimal
-                                && o2 instanceof Double) {
-                            // only look at rows greater than the absolute
-                            // smallest value specified
-                            // NSB - 16/6/04 - Added as Oracle returns Big
-                            // Decimals
+                        } else if (o1 instanceof BigDecimal && o2 instanceof Double) {
+                            // only look at rows greater than the absolute smallest value specified
+                            // NSB - 16/6/04 - Added as Oracle returns Big Decimals
                             if ((Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue)
                                     && (Math.abs(((Double) o2)) > smallestAbsoluteValue)) {
-                                double percentageDiff = Math
-                                        .abs(((((BigDecimal) o1).doubleValue() - ((Double) o2)
-                                        ) / ((BigDecimal) o1)
-                                                .doubleValue()) * 100);
+                                double percentageDiff =
+                                        Math.abs(((((BigDecimal) o1).doubleValue() - ((Double) o2)
+                                        ) / ((BigDecimal) o1).doubleValue()) * 100);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs(((BigDecimal) o1)
-                                            .doubleValue()
-                                            - ((Double) o2));
-                                    logDifference(
-                                            (String) inputProperties1
-                                                    .get("key"),
-                                            key,
-                                            input1Alias,
-                                            inputColumns1[input1CompareColumnPosition[i]],
-                                            o1,
-                                            input2Alias,
-                                            inputColumns2[input2CompareColumnPosition[i]],
-                                            o2, valueOf(percentageDiff),
-                                            valueOf(absDiff));
+                                    double absDiff = Math.abs(((BigDecimal) o1).doubleValue() - ((Double) o2));
+                                    logDifference((String) inputProperties1.get("key"),
+                                            key, input1Alias, inputColumns1[input1CompareColumnPosition[i]],
+                                            o1, input2Alias, inputColumns2[input2CompareColumnPosition[i]],
+                                            o2, valueOf(percentageDiff), valueOf(absDiff));
                                     matchedRow = false;
                                 }
                             }
@@ -706,13 +675,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             if (Math.abs(((Double) o1).doubleValue()) > smallestAbsoluteValue
                                     && Math.abs(((BigDecimal) o2).doubleValue()) > smallestAbsoluteValue) {
                                 double percentageDiff = Math
-                                        .abs(((((Double) o1).doubleValue() - ((BigDecimal) o2)
-                                                .doubleValue()) / ((Double) o1)
-                                                .doubleValue()) * 100);
+                                        .abs((((Double) o1 - ((BigDecimal) o2)
+                                                .doubleValue()) / (Double) o1) * 100);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs(((Double) o1)
-                                            .doubleValue()
-                                            - ((BigDecimal) o2).doubleValue());
+                                    double absDiff = Math.abs((Double) o1 - ((BigDecimal) o2).doubleValue());
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
