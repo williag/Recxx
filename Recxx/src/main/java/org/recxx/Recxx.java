@@ -30,7 +30,7 @@ import static org.recxx.utils.ReconciliationMode.TW;
  * supports comparison between 2 data sets,
  * <p/>
  * Properties for the 2 data sources are specified, and then the data sources
- * are loaded in seperate threads and placed into keyed HashMaps to allow
+ * are loaded in separate threads and placed into keyed HashMaps to allow
  * comparison. When both data sets are loaded, the reconciliation process then
  * takes place. The sets of sql specified for each data source must have the
  * columns for comparison in the same order, even if their names are different -
@@ -144,8 +144,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * Normal main method to start up the class from a command line
      *
-     * @param args
-     * @throws Exception
+     * @param args main args
+     * @throws Exception if there is a problem
      */
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
@@ -195,7 +195,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * close the csv logger, if open.
      *
-     * @throws java.io.IOException
+     * @throws java.io.IOException if the file can't be closed
      */
     private void close() throws IOException {
         if (m_outputType.equals("csv") && m_logger != null)
@@ -293,8 +293,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                         if (o1 instanceof Double && o2 instanceof Double) {
                             // only look at rows greater than the absolute
                             // smallest value specified
-                            if (Math.abs((Double) o1) > smallestAbsoluteValue
-                                    && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
+                            if ((Math.abs((Double) o1) > smallestAbsoluteValue)
+                                    && (Math.abs((Double) o2) > smallestAbsoluteValue)) {
                                 double percentageDiff;
                                 percentageDiff = calculatePercentageDifference((Double) o1, (Double) o2);
                                 if (percentageDiff > tolerancePercentage) {
@@ -321,8 +321,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             // smallest value specified
                             // NSB - 16/6/04 - Added as Oracle returns Big
                             // Decimals
-                            if (Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue
-                                    && Math.abs(((Double) o2).doubleValue()) > smallestAbsoluteValue) {
+                            if ((Math.abs(((BigDecimal) o1).doubleValue()) > smallestAbsoluteValue)
+                                    && (Math.abs((Double) o2) > smallestAbsoluteValue)) {
                                 double percentageDiff = Math
                                         .abs(((((BigDecimal) o1).doubleValue() - (Double) o2) / ((BigDecimal) o1)
                                                 .doubleValue()) * 100);
@@ -350,15 +350,13 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             // smallest value specified
                             // NSB - 16/6/04 - Added as Oracle returns Big
                             // Decimals
-                            if (Math.abs(((Double) o1).doubleValue()) > smallestAbsoluteValue
-                                    && Math.abs(((BigDecimal) o2).doubleValue()) > smallestAbsoluteValue) {
-                                double percentageDiff = Math
-                                        .abs(((((Double) o1).doubleValue() - ((BigDecimal) o2)
-                                                .doubleValue()) / ((Double) o1)
-                                                .doubleValue()) * 100);
+                            if ((Math.abs((Double) o1) > smallestAbsoluteValue)
+                                    && (((BigDecimal) o2).abs().doubleValue() > smallestAbsoluteValue)) {
+                                double percentageDiff = Math.abs(((((Double) o1)
+                                        - ((BigDecimal) o2).doubleValue())
+                                        / (Double) o1) * 100);
                                 if (percentageDiff > tolerancePercentage) {
-                                    double absDiff = Math.abs((Double) o1
-                                            - ((BigDecimal) o2).doubleValue());
+                                    double absDiff = Math.abs((Double) o1 - ((BigDecimal) o2).doubleValue());
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -381,13 +379,9 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                 if (Math.abs(((Integer) o1).intValue()) > smallestAbsoluteValue
                                         && Math.abs(((Integer) o2).intValue()) > smallestAbsoluteValue) {
                                     int percentageDiff = Math
-                                            .abs((((Integer) o1 - ((Integer) o2)
-                                                    .intValue()) / ((Integer) o1)
-                                                    .intValue()) * 100);
+                                            .abs((((Integer) o1 - (Integer) o2) / (Integer) o1) * 100);
                                     if (percentageDiff > tolerancePercentage) {
-                                        int absDiff = Math.abs(((Integer) o1)
-                                                .intValue()
-                                                - ((Integer) o2).intValue());
+                                        int absDiff = Math.abs((Integer) o1 - (Integer) o2);
                                         logDifference(
                                                 (String) inputProperties1
                                                         .get("key"),
@@ -420,7 +414,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
                             }
                         } else if (o1 instanceof String && o2 instanceof String) {
-                            if (!o1.equals((String) o2)) {
+                            if (!o1.equals(o2)) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -528,15 +522,15 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             while (inputIterator.hasNext()) {
                 String key = (String) inputIterator.next();
                 // for keys that are missing,show all the values that are actually there, vs 'Missing'
-                for (int j = 0; j < input2CompareColumnPosition.length; j++) {
-                    Object o1 = ((ArrayList) inputData2.get(key)).get(input2CompareColumnPosition[j]);
+                for (int anInput2CompareColumnPosition : input2CompareColumnPosition) {
+                    Object o1 = ((ArrayList) inputData2.get(key)).get(anInput2CompareColumnPosition);
                     if (((o1 instanceof Double) || (o1 instanceof Integer) || (o1 instanceof String))) {
                         // only log a difference here, if o1 is <> 0.0, even if
                         // 02 is actually missing..
                         logDifference((String) inputProperties2.get("key"),
                                 key, input2Alias, "Missing", "Missing",
                                 input1Alias,
-                                inputColumns2[input2CompareColumnPosition[j]],
+                                inputColumns2[anInput2CompareColumnPosition],
                                 o1, "", "");
                     }
                 }
@@ -560,7 +554,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * Method recData.
      *
-     * @throws Exception
+     * @throws Exception if there is a problem with the processing
      */
     private void oldRecData() throws Exception {
 
@@ -575,8 +569,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
         String input2Alias;
 
         int input1MatchedRows = 0;
-        float tolerancePercentage = 0.0f;
-        float smallestAbsoluteValue = 0.0f;
+        float tolerancePercentage;
+        float smallestAbsoluteValue;
 
         LOGGER.info("Starting to reconcile data sources...");
 
@@ -672,11 +666,9 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             // smallest value specified
                             // NSB - 16/6/04 - Added as Oracle returns Big
                             // Decimals
-                            if (Math.abs(((Double) o1).doubleValue()) > smallestAbsoluteValue
-                                    && Math.abs(((BigDecimal) o2).doubleValue()) > smallestAbsoluteValue) {
-                                double percentageDiff = Math
-                                        .abs((((Double) o1 - ((BigDecimal) o2)
-                                                .doubleValue()) / (Double) o1) * 100);
+                            if ((Math.abs((Double) o1) > smallestAbsoluteValue) && (((BigDecimal) o2).abs().doubleValue() > smallestAbsoluteValue)) {
+                                double percentageDiff = Math.abs((((Double) o1 - ((BigDecimal) o2)
+                                        .doubleValue()) / (Double) o1) * 100);
                                 if (percentageDiff > tolerancePercentage) {
                                     double absDiff = Math.abs((Double) o1 - ((BigDecimal) o2).doubleValue());
                                     logDifference(
@@ -700,9 +692,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                 // smallest value specified
                                 if (Math.abs(((Integer) o1).intValue()) > smallestAbsoluteValue
                                         && Math.abs(((Integer) o2).intValue()) > smallestAbsoluteValue) {
-                                    int percentageDiff = Math
-                                            .abs((((Integer) o1 - (Integer) o2) / ((Integer) o1)
-                                                    .intValue()) * 100);
+                                    int percentageDiff = Math.abs((((Integer) o1 - (Integer) o2) / (Integer) o1) * 100);
                                     if (percentageDiff > tolerancePercentage) {
                                         int absDiff = Math.abs((Integer) o1
                                                 - (Integer) o2);
@@ -722,7 +712,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                     }
                                 }
                             } catch (ArithmeticException ae) {
-                                if (!((Integer) o1).equals(o2)) {
+                                if (!o1.equals(o2)) {
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
@@ -738,7 +728,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
                             }
                         } else if (o1 instanceof String && o2 instanceof String) {
-                            if (!(((String) o1).equals((String) o2))) {
+                            if (!(o1.equals(o2))) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -753,7 +743,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                         } else if (o1 instanceof Boolean
                                 && o2 instanceof Boolean) {
 
-                            if (!((Boolean) o1).equals(o2)) {
+                            if (!o1.equals(o2)) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -767,8 +757,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                             }
                         } else if (o1 instanceof java.util.Date
                                 && o2 instanceof java.util.Date) {
-                            if (!(((java.util.Date) o1)
-                                    .equals((java.util.Date) o2))) {
+                            if (!(o1.equals(o2))) {
                                 logDifference(
                                         (String) inputProperties1.get("key"),
                                         key,
@@ -803,9 +792,9 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
                 } else {
                     // for keys that are missing,show all the values that are actually there, vs 'Missing'
-                    for (int j = 0; j < input1CompareColumnPosition.length; j++) {
-                        Object o1 = (Object) ((ArrayList) inputData1.get(key))
-                                .get(input1CompareColumnPosition[j]);
+                    for (int anInput1CompareColumnPosition : input1CompareColumnPosition) {
+                        Object o1 = ((ArrayList) inputData1.get(key))
+                                .get(anInput1CompareColumnPosition);
 
                         if ((o1 instanceof Double || o1 instanceof Integer || o1 instanceof String)) {
                             // only log a difference here, if o1 is <> 0.0, even
@@ -814,7 +803,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                     (String) inputProperties1.get("key"),
                                     key,
                                     input1Alias,
-                                    inputColumns1[input1CompareColumnPosition[j]],
+                                    inputColumns1[anInput1CompareColumnPosition],
                                     o1, input2Alias, "Missing", "Missing", "",
                                     "");
                             matchedRow = false;
@@ -837,21 +826,20 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     }
 
     /**
-     * wait for all the worker threads to finish....only returns after all have
-     * finshed.
+     * wait for all the worker threads to finish....only returns after all have completed.
+     *
+     * @throws InterruptedException if there is a thread problem
      */
     private void waitForThreads() throws InterruptedException {
         Thread[] threads = new Thread[m_workerGroup.activeCount()];
 
         m_workerGroup.enumerate(threads);
 
-        if (threads != null) {
-            for (int i = 0; i < threads.length; i++) {
-                if (threads[i].isAlive())
-                    threads[i].join();
+        for (Thread thread : threads) {
+            if (thread.isAlive())
+                thread.join();
 
-                LOGGER.info("Thread " + threads[i].getName() + " finished");
-            }
+            LOGGER.info("Thread " + thread.getName() + " finished");
         }
     }
 
@@ -859,11 +847,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * start up all the worker threads to start loading the data
      */
     private void startThreads() {
-        // loop thru the sources and start them loading...
-        Iterator sourceIterator = m_propertiesMap.keySet().iterator();
+        // loop through the sources and start them loading...
 
-        while (sourceIterator.hasNext()) {
-            String key = (String) sourceIterator.next();
+        for (Object o : m_propertiesMap.keySet()) {
+            String key = (String) o;
             Properties sourceProperties = (Properties) m_propertiesMap
                     .get((key));
 
@@ -889,13 +876,12 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * load most of the properties in when the class initialises, to make the
      * log files ,look clearer
      *
-     * @throws Exception
+     * @throws Exception if there is a problem with the properties file supplied.
      */
     private void loadProperties() throws Exception {
-        // load most of the parameters in at the beginning, as it looks neater
-        // in the log files
+        // load most of the parameters in at the beginning, as it looks neater in the log files
         m_propertiesMap = new HashMap();
-        Properties props = null;
+        Properties props;
 
         String propertiesStub = format("%s.%s.", prefix, m_appName);
 
@@ -959,7 +945,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 props.setProperty("driver", superProps.getProperty(inputStub + "db.jdbc.driver"));
                 props.setProperty("sql", loadStringPropertyFromFile(superProps.getProperty(inputStub + "db.sql"), "select"));
                 props.setProperty("key", superProps.getProperty(inputStub + "db.key"));
-                props.setProperty("aggregate", new String("false"));
+                props.setProperty("aggregate", "false");
 
                 m_propertiesMap.put(inputAlias, props);
             } else if (inputType.equals(FILE_INPUT)) {
@@ -976,7 +962,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
                 if (!props.getProperty("columnsSupplied").equals("true")) {
                     // then the columns have to be specified in a property,
-                    // seperated by spaces (just like the key)
+                    // separated by spaces (just like the key)
                     String fileColumns = superProps.getProperty(inputStub + "file.columns");
                     if (fileColumns == null) {
                         throw new PropertiesFileException(inputStub + "file.firstRowColumns has been set to false but "
@@ -986,7 +972,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 }
                 String columnDataTypes = superProps.getProperty(inputStub + "file.columnDataTypes");
                 if (columnDataTypes == null) {
-                    throw new PropertiesFileException(inputStub + "file.columnDataTypes needs to specifiy the datatypes");
+                    throw new PropertiesFileException(inputStub + "file.columnDataTypes needs all the datatypes for the columns");
                 }
                 props.setProperty("columnDataTypes", columnDataTypes);
                 props.setProperty("dateFormat", superProps.getProperty(inputStub + "file.columnDataTypes.date.format", "yyyyMMdd"));
@@ -1018,10 +1004,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * each, then treat the propertyValue as a file path and load up from there,
      * otherwise just return the propertyValue
      *
-     * @param propertyValue
-     * @param checkValue
-     * @return String
-     * @throws Exception
+     * @param propertyValue the property value
+     * @param checkValue    the check value
+     * @return String       return value
+     * @throws Exception if there is a problem
      */
     private String loadStringPropertyFromFile(String propertyValue,
                                               String checkValue) throws Exception {
@@ -1030,7 +1016,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
             // then assume its a path to a file, so treat it as such
             FileReader fr = null;
             BufferedReader br = null;
-            StringBuffer realPropertyValue = new StringBuffer();
+            StringBuilder realPropertyValue = new StringBuilder();
 
             try {
                 fr = new FileReader(propertyValue);
@@ -1039,10 +1025,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 while (br.ready()) {
                     realPropertyValue.append(br.readLine());
                 }
-            } catch (FileNotFoundException fnfe) {
+            } catch (FileNotFoundException e) {
                 LOGGER.severe("Property value file name " + propertyValue
                         + " could not be found");
-                throw new Exception(fnfe.getMessage());
+                throw new Exception(e.getMessage());
             } catch (IOException ioe) {
                 LOGGER.severe("Problem reading from file " + propertyValue);
                 throw new Exception(ioe.getMessage());
@@ -1068,6 +1054,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * Sets the dataToCompare.
      *
      * @param dataToCompare The dataToCompare to set
+     * @param key           to use for the compare
      */
     public synchronized void setDataToCompare(HashMap dataToCompare, String key) {
         m_dataToCompare.put(key, dataToCompare);
@@ -1078,14 +1065,15 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * Log a difference between the 2 data sets. Depending on m_outputType, the
      * difference is logged to System.err.or a specified csv file.
      *
-     * @param keyColumns
-     * @param key
-     * @param alias1
-     * @param columnName1
-     * @param columnValue1
-     * @param alias2
-     * @param columnName2
-     * @param columnValue2
+     * @param keyColumns   keyColumns
+     * @param key          key
+     * @param alias1       alias1
+     * @param columnName1  columnName1
+     * @param columnValue1 columnValue1
+     * @param alias2       alias2
+     * @param columnName2  columnName2
+     * @param columnValue2 columnValue2
+     * @param absDiff      absDiff
      */
     private void logDifference(String keyColumns, String key, String alias1,
                                String columnName1, Object columnValue1, String alias2,
@@ -1094,8 +1082,8 @@ public class Recxx extends AbstractRecFeed implements Runnable {
         if (m_outputType.equals("csv")) {
             try {
                 initCsvFile(alias1, alias2, keyColumns);
-                logDifferenceToFile(key, alias1, columnName1, columnValue1,
-                        alias2, columnName2, columnValue2, percentageDiff,
+                logDifferenceToFile(key, columnName1, columnValue1,
+                        columnName2, columnValue2, percentageDiff,
                         absDiff);
             } catch (IOException ioe) {
                 ioe.printStackTrace();
@@ -1110,16 +1098,16 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * log a difference to csv file
      *
-     * @param key
-     * @param alias1
-     * @param columnName1
-     * @param columnValue1
-     * @param alias2
-     * @param columnName2
-     * @param columnValue2
+     * @param key            key
+     * @param columnName1    columnName1
+     * @param columnValue1   columnValue1
+     * @param columnName2    columnName2
+     * @param columnValue2   columnValue2
+     * @param percentageDiff percentageDiff
+     * @param absDiff        absDiff
+     * @throws java.io.IOException if there is a problem writing to a file
      */
-    private void logDifferenceToFile(String key, String alias1,
-                                     String columnName1, Object columnValue1, String alias2,
+    private void logDifferenceToFile(String key, String columnName1, Object columnValue1,
                                      String columnName2, Object columnValue2, String percentageDiff,
                                      String absDiff) throws IOException {
         StringTokenizer st = new StringTokenizer(key, "+");
@@ -1150,17 +1138,16 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * log a summary report to file detailing rows matched etc etc
      *
-     * @param alias1
-     * @param rowCount1
-     * @param alias2
-     * @param rowCount2
-     * @param rowsMatched
-     * @throws IOException
+     * @param alias1      alias1
+     * @param rowCount1   rowCount1
+     * @param alias2      alias2
+     * @param rowCount2   rowCount2
+     * @param rowsMatched rowsMatched
+     * @throws IOException if there is a problem writing to file
      */
     private void logSummaryToFile(String alias1, int rowCount1, String alias2,
                                   int rowCount2, int rowsMatched) throws IOException {
-        // 2 blank lines to seperate out the summary from the rest of the
-        // results
+        // 2 blank lines to separate out the summary from the rest of the results
         m_logger.writeln("");
         m_logger.writeln("");
         m_logger.writeln("=======================");
@@ -1174,17 +1161,15 @@ public class Recxx extends AbstractRecFeed implements Runnable {
         m_logger.writeln(rowsMatched);
         m_logger.write(alias1 + " matched to " + alias2 + " %");
 
-        Integer i = new Integer(rowsMatched);
-        Integer ii = new Integer(rowCount1);
-        Integer ii2 = new Integer(rowCount2);
+        Integer i = rowsMatched;
+        Integer ii = rowCount1;
+        Integer ii2 = rowCount2;
 
-        m_logger.writeln(m_dPercentageFormatter.format(i.floatValue()
-                / ii.floatValue()));
+        m_logger.writeln(m_dPercentageFormatter.format(i.floatValue() / ii.floatValue()));
         m_logger.write(alias2 + " matched to " + alias1 + " %");
-        m_logger.writeln(m_dPercentageFormatter.format(i.floatValue()
-                / ii2.floatValue()));
+        m_logger.writeln(m_dPercentageFormatter.format(i.floatValue() / ii2.floatValue()));
 
-        // loop thru the sources and start them loading...
+        // loop through the sources and start them loading...
         Iterator sourceIterator = m_propertiesMap.keySet().iterator();
         Properties props = new Properties();
 
@@ -1214,12 +1199,12 @@ public class Recxx extends AbstractRecFeed implements Runnable {
     /**
      * after the rec has finished, log summary information
      *
-     * @param alias1
-     * @param rowCount1
-     * @param alias2
-     * @param rowCount2
-     * @param rowsMatched
-     * @throws IOException
+     * @param alias1      alias1
+     * @param rowCount1   rowCount1
+     * @param alias2      alias2
+     * @param rowCount2   rowCount2
+     * @param rowsMatched rowsMatched
+     * @throws IOException if there is a problem
      */
     private void logSummary(String alias1, int rowCount1, String alias2,
                             int rowCount2, int rowsMatched) throws IOException {
@@ -1245,24 +1230,21 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * log a difference to System.Err. WARNING: Slows performance down lots and
      * lots...!
      *
-     * @param key
-     * @param alias1
-     * @param columnName1
-     * @param columnValue1
-     * @param alias2
-     * @param columnName2
-     * @param columnValue2
+     * @param key          key
+     * @param alias1       alias1
+     * @param columnName1  columnName1
+     * @param columnValue1 columnValue1
+     * @param alias2       alias2
+     * @param columnName2  columnName2
+     * @param columnValue2 columnValue2
      */
     private void logDifferenceToSystemErr(String key, String alias1,
                                           String columnName1, Object columnValue1, String alias2,
                                           String columnName2, Object columnValue2) {
-        StringBuffer sb = new StringBuffer();
-        sb.append("INFO: ");
-        sb.append("Key " + key + " | ");
-        sb.append(alias1 + "." + columnName1 + " = " + columnValue1);
-        sb.append(", ");
-        sb.append(alias2 + "." + columnName2 + " = " + columnValue2);
-
+        StringBuilder sb = new StringBuilder();
+        sb.append("INFO: ").append("Key ").append(key).append(" | ");
+        sb.append(alias1).append(".").append(columnName1).append(" = ").append(columnValue1).append(", ");
+        sb.append(alias2).append(".").append(columnName2).append(" = ").append(columnValue2);
         System.err.println(sb.toString());
     }
 
@@ -1270,10 +1252,10 @@ public class Recxx extends AbstractRecFeed implements Runnable {
      * initialise the csv file given the data input alias names and the key
      * column names
      *
-     * @param alias1
-     * @param alias2
-     * @param keyColumns
-     * @throws java.io.IOException
+     * @param alias1     alias1
+     * @param alias2     alias2
+     * @param keyColumns keyColumns
+     * @throws java.io.IOException if there is a problem
      */
     private void initCsvFile(String alias1, String alias2, String keyColumns)
             throws IOException {

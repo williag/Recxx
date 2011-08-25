@@ -8,7 +8,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -36,6 +35,9 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
 
     /**
      * Constructor for DatabaseFacadeWorker.
+     *
+     * @param prefix         prefix
+     * @param propertiesFile props file
      */
     public FileFacadeWorker(String prefix, String propertiesFile) {
         // constructor
@@ -75,7 +77,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     }
 
     /**
-     * set the datastore to return the data to
+     * set the data store to return the data to
      */
     public void setDataStore(Recxx rec) {
         m_Rec = rec;
@@ -83,6 +85,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
 
     /**
      * validate the properties, run the query and process the data
+     *
+     * @throws Exception if a problem
      */
     private void getData() throws Exception {
         String filePath = m_Properties.getProperty("filePath");
@@ -107,7 +111,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     /**
      * close the file once finished with
      *
-     * @param br
+     * @param br close the reader and don't throw if there is a problem
      */
     private void closeFile(BufferedReader br) {
         try {
@@ -120,11 +124,12 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     /**
      * return a buffered reader reference to the file to be loaded
      *
-     * @param filePath
+     * @param filePath path to file
      * @return a buffered reader reference
+     * @throws Exception if there is a problem
      */
     private BufferedReader openFile(String filePath) throws Exception {
-        BufferedReader br = null;
+        BufferedReader br;
 
         try {
             FileReader fr = new FileReader(filePath);
@@ -143,14 +148,14 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
      * columns, and also return a HashMap of data, keyed on the unique key
      * against an ArrayList representing a row.
      *
-     * @param key
-     * @param prop
-     * @return HashMap
-     * @throws java.sql.SQLException
-     * @throws Exception
+     * @param key  key
+     * @param br   buffered reader
+     * @param prop prop
+     * @return HashMap                      map
+     * @throws Exception any other error
      */
     public HashMap processFile(String key, BufferedReader br, Properties prop)
-            throws SQLException, Exception {
+            throws Exception {
         HashMap data = new HashMap();
         boolean fileEmpty = false;
         int count = 0;
@@ -203,27 +208,26 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
                         // System.err.println(st.countTokens());
 
                         if (isAColumnToCompare(columnCounter, columns)) {
-                            // cast the object to the correct datatype
-                            Object o = castObject((Object) st.nextToken(),
+                            // cast the object to the correct data type
+                            Object o = castObject(st.nextToken(),
                                     columnsClassNames[columnCounter]);
 
                             // for doubles which are null, and handleNullsAsZero
                             // is true
                             // default the value to 0.0
-                            if (o == null
-                                    && columnsClassNames[columnCounter]
-                                    .equals("java.lang.Double")
-                                    && handleNullsAsZero)
+                            if (o == null && columnsClassNames[columnCounter].equals("java.lang.Double")
+                                    && handleNullsAsZero) {
                                 row.add(new Double(0.0));
-                            else
+                            } else {
                                 row.add(o);
+                            }
                         } else
                             st.nextToken();
 
                         columnCounter++;
                     }
 
-                    // try and save memory by trimming the arraylist to size
+                    // try and save memory by trimming the array list to size
                     row.trimToSize();
 
                     String mapKey = generateKey(m_ReducedColumns, m_KeyColumns,
@@ -279,8 +283,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
      *
      * @param columns        - full set of columns
      * @param keyColumns     - key columns
-     * @param compareColumns - comapre columns
-     * @return
+     * @param compareColumns - compare columns
+     * @return the reduced column set correctly
      */
     private String[] addArraysProperly(String[] columns, String[] keyColumns,
                                        String[] compareColumns) {
@@ -500,8 +504,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
 
         if (!validColumn) {
             // then check the compare columns
-            for (int j = 0; j < m_CompareColumns.length; j++) {
-                if (m_CompareColumns[j].equals(columnName)) {
+            for (String m_CompareColumn : m_CompareColumns) {
+                if (m_CompareColumn.equals(columnName)) {
                     validColumn = true;
                     break;
                 }
