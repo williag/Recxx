@@ -294,10 +294,10 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
         int prevCounter = 0;
 
         // the files columns
-        for (int i = 0; i < columns.length; i++) {
-            for (int j = 0; j < keyColumns.length; j++) {
-                if (columns[i].equals(keyColumns[j])) {
-                    reducedColumns[counter] = columns[i];
+        for (String column : columns) {
+            for (String keyColumn : keyColumns) {
+                if (column.equals(keyColumn)) {
+                    reducedColumns[counter] = column;
                     counter++;
                     break;
                 }
@@ -305,9 +305,9 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
 
             if (reducedColumns[prevCounter] == null) {
                 // then we haven't found the column yet
-                for (int k = 0; k < compareColumns.length; k++) {
-                    if (columns[i].equals(compareColumns[k])) {
-                        reducedColumns[counter] = columns[i];
+                for (String compareColumn : compareColumns) {
+                    if (column.equals(compareColumn)) {
+                        reducedColumns[counter] = column;
                         counter++;
                         break;
                     }
@@ -327,17 +327,17 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
      * Given a delimited row, just make sure any empty 'columns' have a space in
      * there, instead of nothing and just 2 delimiters next to each other..
      *
-     * @param line
+     * @param line line
      * @return String corrected line
      */
     private String correctLine(String line) {
         // look for 2 delimiters next to each other, with no space
         String delimiter = m_Properties.getProperty("delimiter");
 
-        while (line.indexOf(delimiter + delimiter) != -1) {
+        while (line.contains(delimiter + delimiter)) {
             int pos = line.indexOf(delimiter + delimiter);
 
-            StringBuffer sb = new StringBuffer(line);
+            StringBuilder sb = new StringBuilder(line);
             sb.insert(pos + 1, "0");
 
             line = sb.toString();
@@ -355,7 +355,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     /**
      * return an array of column data types
      *
-     * @return array of column data tyoes
+     * @return array of column data types
      */
     private String[] getColumnsClassNameData() {
         StringTokenizer st = new StringTokenizer(
@@ -375,7 +375,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     /**
      * get the column names
      *
-     * @param columnNames
+     * @param columnNames columns
      * @return array of column names
      */
     private String[] getColumnsData(String columnNames) {
@@ -396,23 +396,20 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     /**
      * given a reference to the file, return the number of columns
      *
-     * @param br
+     * @param br reader
      * @return the number of columns
      */
     private int getColumnCount(BufferedReader br) {
-        if ((Boolean.valueOf(m_Properties.getProperty("columnsSupplied")))
-                .booleanValue()) {
+        if (Boolean.valueOf(m_Properties.getProperty("columnsSupplied"))) {
             // then the first row is a list of the columns
             try {
-                String columns = br.readLine();
-                m_ColumnNames = columns;
+                m_ColumnNames = br.readLine();
 
-                if ((Boolean.valueOf(m_Properties
-                        .getProperty("dataTypesSupplied"))).booleanValue()) {
-                    // for data produced by using the yolus regression sink, the
-                    // second row is always
-                    // the data types of the 1st row columns..so ignore it if
-                    // the property is set to true
+                if (Boolean.valueOf(m_Properties.getProperty("dataTypesSupplied"))) {
+                    /*
+                    for data produced by using the yolus regression sink, the second row is always
+                    the data types of the 1st row columns..so ignore it if the property is set to true
+                    */
                     br.readLine();
                 }
             } catch (IOException e) {
@@ -427,12 +424,12 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
     }
 
     /**
-     * Given an object, and a property specified java datatype create a new
+     * Given an object, and a property specified java data type create a new
      * object accordingly..to allow Rec2Inputs.recData() to work..
      *
-     * @param o
-     * @param columnDataType
-     * @return the newly cast oject
+     * @param o              object
+     * @param columnDataType columnDataType
+     * @return the newly cast object
      */
     private Object castObject(Object o, String columnDataType) {
         if (columnDataType.equals("java.lang.Double"))
@@ -442,17 +439,15 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
         else if (columnDataType.equals("java.lang.Integer"))
             return new Integer((String) o);
 
-        else if (columnDataType.equals("java.lang.String"))
-            return new String((String) o).trim();
-
-        else if (columnDataType.equals("java.lang.Float"))
+        else if (columnDataType.equals("java.lang.String")) {
+            return ((String) o).trim();
+        } else if (columnDataType.equals("java.lang.Float"))
             return new Float(Recxx.m_dpFormatter.format(Float
                     .parseFloat((String) o)));
 
-        else if (columnDataType.equals("java.lang.Boolean"))
-            return new Boolean((String) o);
-
-        else if (columnDataType.equals("java.util.Date")) {
+        else if (columnDataType.equals("java.lang.Boolean")) {
+            return Boolean.valueOf((String) o);
+        } else if (columnDataType.equals("java.util.Date")) {
             if (o.equals("0"))
                 return null;
 
@@ -460,16 +455,16 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
             try {
                 return m_Dtf.parse((String) o);
             } catch (ParseException pe) {
-                LOGGER.log(Level.SEVERE, "Problem formatting date " + (String) o
+                LOGGER.log(Level.SEVERE, "Problem formatting date " + o
                         + " using pattern "
                         + m_Properties.getProperty("dateFormat"), pe);
             }
 
-            return (String) o;
+            return o;
         } else {
             LOGGER.info("Specified data type " + columnDataType
                     + " not found..defaulting value to java.lang.String");
-            return new String("");
+            return "";
         }
 
     }
@@ -478,8 +473,9 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
      * is the specified column number a valid column to compare? ie a key or a
      * compare?
      *
-     * @param columnNumber
-     * @return
+     * @param columnNumber column number
+     * @param columns      columns to search
+     * @return boolean is to be compared
      */
     private boolean isAColumnToCompare(int columnNumber, String[] columns) {
         boolean validColumn = false;
@@ -495,8 +491,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
            */
         String columnName = columns[columnNumber];
 
-        for (int i = 0; i < m_KeyColumns.length; i++) {
-            if (m_KeyColumns[i].equals(columnName)) {
+        for (String m_KeyColumn : m_KeyColumns) {
+            if (m_KeyColumn.equals(columnName)) {
                 validColumn = true;
                 break;
             }
