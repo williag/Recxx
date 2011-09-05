@@ -233,7 +233,8 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
                     String mapKey = generateKey(m_ReducedColumns, m_KeyColumns,
                             row);
 
-                    if ("".equals(mapKey)) {
+
+                    if (!"".equals(mapKey)) {
                         if (!data.containsKey(mapKey)) {
                             data.put(mapKey, row);
                         } else {
@@ -249,7 +250,7 @@ public class FileFacadeWorker extends AbstractRecFeed implements RecxxWorker {
                                         + ") - unless aggregation is specified, the rec wont work!");
                         }
                     } else {
-                        LOGGER.warning("Null key returned - discarding row");
+                        LOGGER.warning("empty key (" + mapKey + ") returned - discarding row");
                     }
 
                     count++;
