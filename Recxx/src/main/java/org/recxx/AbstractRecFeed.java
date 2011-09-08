@@ -164,8 +164,7 @@ public abstract class AbstractRecFeed {
 
         this.columns = columns;
 
-        String[] keyColumns = ArrayUtils.convertStringKeyToArray(key,
-                prop.getProperty("aggregate", " "));
+        String[] keyColumns = ArrayUtils.convertStringKeyToArray(key, null);
 
         if (ArrayUtils.keysPresentInColumns(keyColumns, columns)) {
             // the key columns match with the meta data in the ResultSet so
@@ -215,7 +214,7 @@ public abstract class AbstractRecFeed {
 
                 String mapKey = generateKey(columns, keyColumns, row);
 
-                if (mapKey.equals("")) {
+                if (!mapKey.equals("")) {
                     if (!data.containsKey(mapKey)) {
                         data.put(mapKey, row);
                     } else {
