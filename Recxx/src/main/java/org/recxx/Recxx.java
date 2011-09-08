@@ -1,5 +1,25 @@
 package org.recxx;
 
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
+import static org.recxx.utils.ReconciliationMode.OW;
+import static org.recxx.utils.ReconciliationMode.TW;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Properties;
+import java.util.StringTokenizer;
+import java.util.logging.Logger;
+
 import org.recxx.exception.PropertiesFileException;
 import org.recxx.facades.DatabaseFacadeWorker;
 import org.recxx.facades.FileFacadeWorker;
@@ -8,20 +28,6 @@ import org.recxx.utils.ArrayUtils;
 import org.recxx.utils.CONSTANTS;
 import org.recxx.utils.ReconciliationMode;
 import org.recxx.writer.CSVLogger;
-
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.util.*;
-import java.util.logging.Logger;
-
-import static java.lang.String.format;
-import static java.lang.String.valueOf;
-import static org.recxx.utils.ReconciliationMode.OW;
-import static org.recxx.utils.ReconciliationMode.TW;
 
 /**
  * Generic SQL based reconciliation tool to allow comparison between data
@@ -371,6 +377,28 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                     matchedRow = false;
                                 }
                             }
+                        } else if (o1 instanceof BigDecimal
+                                && o2 instanceof BigDecimal) {
+                        	
+                        	if (  ((BigDecimal) o1).abs().compareTo( BigDecimal.valueOf(smallestAbsoluteValue) ) == 1 
+                        			&& ((BigDecimal) o2).abs().compareTo( BigDecimal.valueOf(smallestAbsoluteValue) ) == 1) {
+                        		BigDecimal percentageDiff = ((BigDecimal) o1).subtract(((BigDecimal) o2)).divide(((BigDecimal) o1), 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+                                if (percentageDiff.compareTo(BigDecimal.valueOf(tolerancePercentage)) == 1) {
+                                    BigDecimal absDiff = ((BigDecimal) o1).subtract((BigDecimal) o2).abs();
+                                    logDifference(
+                                            (String) inputProperties1
+                                                    .get("key"),
+                                            key,
+                                            input1Alias,
+                                            inputColumns1[input1CompareColumnPosition[i]],
+                                            o1,
+                                            input2Alias,
+                                            inputColumns2[input2CompareColumnPosition[i]],
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
+                                    matchedRow = false;
+                                }
+                            }
                         } else if (o1 instanceof Integer
                                 && o2 instanceof Integer) {
                             try {
@@ -671,6 +699,27 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                                         .doubleValue()) / (Double) o1) * 100);
                                 if (percentageDiff > tolerancePercentage) {
                                     double absDiff = Math.abs((Double) o1 - ((BigDecimal) o2).doubleValue());
+                                    logDifference(
+                                            (String) inputProperties1
+                                                    .get("key"),
+                                            key,
+                                            input1Alias,
+                                            inputColumns1[input1CompareColumnPosition[i]],
+                                            o1,
+                                            input2Alias,
+                                            inputColumns2[input2CompareColumnPosition[i]],
+                                            o2, valueOf(percentageDiff),
+                                            valueOf(absDiff));
+                                    matchedRow = false;
+                                }
+                            }
+                        } else if (o1 instanceof BigDecimal
+                                && o2 instanceof BigDecimal) {
+                        	if (  ((BigDecimal) o1).abs().compareTo( BigDecimal.valueOf(smallestAbsoluteValue) ) == 1 
+                        			&& ((BigDecimal) o2).abs().compareTo( BigDecimal.valueOf(smallestAbsoluteValue) ) == 1) {
+                        		BigDecimal percentageDiff = ((BigDecimal) o1).subtract(((BigDecimal) o2)).divide(((BigDecimal) o1),6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+                                if (percentageDiff.compareTo(BigDecimal.valueOf(tolerancePercentage)) == 1) {
+                                    BigDecimal absDiff = ((BigDecimal) o1).subtract((BigDecimal) o2).abs();
                                     logDifference(
                                             (String) inputProperties1
                                                     .get("key"),
