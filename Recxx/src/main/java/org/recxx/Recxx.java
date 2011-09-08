@@ -943,7 +943,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
                 props.setProperty("pwd", superProps.getProperty(inputStub + "db.pwd"));
                 props.setProperty("url", superProps.getProperty(inputStub + "db.jdbc.url"));
                 props.setProperty("driver", superProps.getProperty(inputStub + "db.jdbc.driver"));
-                props.setProperty("sql", loadStringPropertyFromFile(superProps.getProperty(inputStub + "db.sql"), "select"));
+                props.setProperty("sql", superProps.getProperty(inputStub + "db.sql"));
                 props.setProperty("key", superProps.getProperty(inputStub + "db.key"));
                 props.setProperty("aggregate", "false");
 
