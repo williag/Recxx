@@ -63,6 +63,10 @@ public class CSVLoggerTest {
 		thenWriterShouldWrite(csvLogger.getDelimiter());
 	}
 
+	private void thenWriterShouldNotBeWrittenTo() throws IOException {
+		verifyNoMoreInteractions(writerMock);
+	}
+
 	@Test
 	public void closeShouldDelegateToBufferedWriterManager() throws Exception {
 		CSVLogger csvLogger = new CSVLogger();
@@ -218,6 +222,30 @@ public class CSVLoggerTest {
 		double inputDouble = 17.0;
 		csvLogger.writeLine(inputDouble);
 		thenWriterShouldWriteLine("" + inputDouble);
+	}
+
+	@Test
+	public void writeLineWithEmptyStringArrayShouldNotDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		String[] emptyStringArray = {};
+		csvLogger.writeLine(emptyStringArray);
+		thenWriterShouldNotBeWrittenTo();
+	}
+
+	@Test
+	public void writeLineWithStringArrayShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		String[] stringArray = { "1", "2", "3" };
+		csvLogger.writeLine(stringArray);
+		verify(writerMock).write(stringArray[0] + csvLogger.getDelimiter());
+		verify(writerMock).write(stringArray[1] + csvLogger.getDelimiter());
+		verify(writerMock).write(stringArray[2]);
+		verify(writerMock).newLine();
+		verifyNoMoreInteractions(writerMock);
 	}
 
 	@Test

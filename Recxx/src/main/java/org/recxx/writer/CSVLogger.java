@@ -195,7 +195,7 @@ public class CSVLogger {
 			if (isIndexOfLastArrayElement(values, idx)) {
 				writeLine(value);
 			} else {
-				writeLine(value);
+				write(value);
 			}
 			idx++;
 		}
