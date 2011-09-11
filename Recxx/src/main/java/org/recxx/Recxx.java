@@ -26,6 +26,7 @@ import org.recxx.facades.FileFacadeWorker;
 import org.recxx.facades.RecxxWorker;
 import org.recxx.utils.ArrayUtils;
 import org.recxx.utils.CONSTANTS;
+import org.recxx.utils.CloseableUtils;
 import org.recxx.utils.ReconciliationMode;
 import org.recxx.writer.BufferedWriterManager;
 import org.recxx.writer.CSVLogger;
@@ -1175,7 +1176,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 	private void initCsvFile(String alias1, String alias2, String keyColumns) throws IOException {
 		if (!m_loggerInit) {
 			m_logger = new CSVLogger();
-			m_logger.setWriterManager(new BufferedWriterManager());
+			m_logger.setBufferedWriterManager(new BufferedWriterManager(new CloseableUtils()));
 			m_logger.setFilename(FILE_LOCATION);
 			m_logger.setDelimiter(FILE_DELIMITER);
 			m_logger.open();

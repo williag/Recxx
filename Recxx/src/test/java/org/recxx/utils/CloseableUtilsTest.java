@@ -21,9 +21,11 @@ public class CloseableUtilsTest {
 	@Mock
 	private Closeable closeableMock;
 
+	private final CloseableUtils closeableUtils = new CloseableUtils();
+
 	@Test
 	public void tryToCloseShouldCloseTheCloseable() throws Exception {
-		IOException exceptionThrownWhenClosing = CloseableUtils.tryToClose(closeableMock);
+		IOException exceptionThrownWhenClosing = closeableUtils.tryToClose(closeableMock);
 		verify(closeableMock).close();
 		verifyNoMoreInteractions(closeableMock);
 		assertThat(exceptionThrownWhenClosing, is(nullValue()));
@@ -33,7 +35,7 @@ public class CloseableUtilsTest {
 	public void tryToCloseShouldReturnExceptionThrownFromCloseOfCloseable() throws Exception {
 		IOException testException = new IOException("Test exception");
 		doThrow(testException).when(closeableMock).close();
-		IOException exceptionThrownWhenClosing = CloseableUtils.tryToClose(closeableMock);
+		IOException exceptionThrownWhenClosing = closeableUtils.tryToClose(closeableMock);
 		verify(closeableMock).close();
 		verifyNoMoreInteractions(closeableMock);
 		assertThat(exceptionThrownWhenClosing, is(testException));

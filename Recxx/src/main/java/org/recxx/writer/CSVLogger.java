@@ -85,7 +85,7 @@ public class CSVLogger {
 
 	private String filename;
 
-	private BufferedWriterManager writerManager;
+	private BufferedWriterManager bufferedWriterManager;
 
 	private String delimiter = DEFAULT_DELIMITER;
 
@@ -103,12 +103,12 @@ public class CSVLogger {
 		return filename;
 	}
 
-	public BufferedWriterManager getWriterManager() {
-		return writerManager;
+	public BufferedWriterManager getBufferedWriterManager() {
+		return bufferedWriterManager;
 	}
 
-	public void setWriterManager(BufferedWriterManager writerManager) {
-		this.writerManager = writerManager;
+	public void setBufferedWriterManager(BufferedWriterManager bufferedWriterManager) {
+		this.bufferedWriterManager = bufferedWriterManager;
 	}
 
 	public void setDelimiter(String delimiter) {
@@ -145,12 +145,12 @@ public class CSVLogger {
 
 	public void open() throws IOException {
 		file = new File(filename);
-		writer = writerManager.open(file);
+		writer = bufferedWriterManager.open(file);
 		LOGGER.info("Created csv file " + file.getPath());
 	}
 
 	public void close() throws IOException {
-		writerManager.close();
+		bufferedWriterManager.close();
 	}
 
 	public void write(double value) throws IOException {

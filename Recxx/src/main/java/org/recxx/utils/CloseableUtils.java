@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class CloseableUtils {
 
-	public static IOException tryToClose(Closeable closeable) {
+	public IOException tryToClose(Closeable closeable) {
 		try {
 			closeable.close();
 		} catch (IOException exception) {

@@ -7,22 +7,19 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.meanbean.lang.Factory;
 import org.meanbean.test.BeanTester;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CSVLoggerTest {
-
-	private static final String TEST_FILE_NAME = "csvLoggerTestFile.csv";
 
 	@Mock
 	private BufferedWriterManager writerManagerMock;
@@ -32,25 +29,33 @@ public class CSVLoggerTest {
 
 	private CSVLogger csvLogger;
 
+	private final TestFileManager testFileManager = new TestFileManager();
+
 	@After
 	public void tearDown() throws Exception {
 		csvLogger = null;
-		deleteTestFile();
+		testFileManager.deleteTestFile();
 	}
 
 	@Test
 	public void gettersAndSettersShouldFunctionCorrectly() throws Exception {
-		new BeanTester().testBean(CSVLogger.class);
+		BeanTester beanTester = new BeanTester();
+		beanTester.getFactoryCollection().addFactory(BufferedWriterManager.class, new Factory<BufferedWriterManager>() {
+			public BufferedWriterManager create() {
+				return new BufferedWriterManager(null);
+			}
+		});
+		beanTester.testBean(CSVLogger.class);
 	}
 
 	private void givenWriterManagerReturnsWriterMock() throws Exception {
-		when(writerManagerMock.open(new File(TEST_FILE_NAME))).thenReturn(writerMock);
+		when(writerManagerMock.open(testFileManager.getTestFile())).thenReturn(writerMock);
 	}
 
 	private void givenCSVLoggerIsCreated() throws Exception {
 		csvLogger = new CSVLogger();
-		csvLogger.setFilename(TEST_FILE_NAME);
-		csvLogger.setWriterManager(writerManagerMock);
+		csvLogger.setFilename(testFileManager.getTestFileName());
+		csvLogger.setBufferedWriterManager(writerManagerMock);
 	}
 
 	private void givenCSVLoggerIsOpen() throws Exception {
@@ -58,31 +63,7 @@ public class CSVLoggerTest {
 	}
 
 	private void givenFileExists() throws IOException {
-		getTestFile().createNewFile();
-	}
-
-	private File getTestFile() {
-		return new File(TEST_FILE_NAME);
-	}
-
-	private long getLastModifiedTimestampOfTestFile() throws IOException {
-		return getTestFile().lastModified();
-	}
-
-	private long getLengthOfTestFile() throws IOException {
-		return getTestFile().length();
-	}
-
-	private void deleteTestFile() {
-		getTestFile().delete();
-	}
-
-	private String getLastModifiedTimestampOfTestFileAsString() throws IOException {
-		long lastModifiedTimestampOfTestFile = getLastModifiedTimestampOfTestFile();
-		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-		Date lastModifiedDateOfTestFile = new Date(lastModifiedTimestampOfTestFile);
-		String lastModifiedDateStringOfTestFile = dateFormat.format(lastModifiedDateOfTestFile);
-		return lastModifiedDateStringOfTestFile;
+		testFileManager.getTestFile().createNewFile();
 	}
 
 	private void thenWriterShouldWrite(String string) throws IOException {
@@ -107,7 +88,7 @@ public class CSVLoggerTest {
 	@Test
 	public void closeShouldDelegateToBufferedWriterManager() throws Exception {
 		CSVLogger csvLogger = new CSVLogger();
-		csvLogger.setWriterManager(writerManagerMock);
+		csvLogger.setBufferedWriterManager(writerManagerMock);
 		csvLogger.close();
 		verify(writerManagerMock).close();
 		verifyNoMoreInteractions(writerManagerMock);
@@ -117,7 +98,7 @@ public class CSVLoggerTest {
 	public void openShouldDelegateToBufferedWriterManager() throws Exception {
 		givenCSVLoggerIsCreated();
 		csvLogger.open();
-		verify(writerManagerMock).open(new File(TEST_FILE_NAME));
+		verify(writerManagerMock).open(testFileManager.getTestFile());
 		verifyNoMoreInteractions(writerManagerMock);
 	}
 
@@ -292,8 +273,9 @@ public class CSVLoggerTest {
 		givenCSVLoggerIsOpen();
 		givenFileExists();
 		String expectedToString =
-		        "CSV File [" + TEST_FILE_NAME + "], last modfied at [" + getLastModifiedTimestampOfTestFileAsString()
-		                + "], size [" + getLengthOfTestFile() + " bytes].";
+		        "CSV File [" + testFileManager.getTestFileName() + "], last modfied at ["
+		                + testFileManager.getLastModifiedTimestampOfTestFileAsString() + "], size ["
+		                + testFileManager.getLengthOfTestFile() + " bytes].";
 		assertThat(csvLogger.toString(), is(expectedToString));
 	}
 
