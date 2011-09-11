@@ -193,15 +193,15 @@ public class CSVLogger {
 		int idx = 0;
 		for (String value : values) {
 			if (isIndexOfLastArrayElement(values, idx)) {
-				writeln(value);
+				writeLine(value);
 			} else {
-				writeln(value);
+				writeLine(value);
 			}
 			idx++;
 		}
 	}
 
-	public void writeln(String value) throws IOException {
+	public void writeLine(String value) throws IOException {
 		if (isNullOrEmpty(value)) {
 			value = nullString;
 		}
@@ -209,24 +209,24 @@ public class CSVLogger {
 		writer.newLine();
 	}
 
-	public void writeln(Date value) throws IOException {
+	public void writeLine(Date value) throws IOException {
 		String stringValue = "";
 		if (value != null) {
 			stringValue += value;
 		}
-		writeln(stringValue);
+		writeLine(stringValue);
 	}
 
-	public void writeln(int value) throws IOException {
-		writeln(String.valueOf(value));
+	public void writeLine(int value) throws IOException {
+		writeLine(String.valueOf(value));
 	}
 
-	public void writeln(float value) throws IOException {
-		writeln(String.valueOf(value));
+	public void writeLine(float value) throws IOException {
+		writeLine(String.valueOf(value));
 	}
 
-	public void writeln(double value) throws IOException {
-		writeln(String.valueOf(value));
+	public void writeLine(double value) throws IOException {
+		writeLine(String.valueOf(value));
 	}
 
 	@Override

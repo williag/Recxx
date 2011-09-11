@@ -53,6 +53,12 @@ public class CSVLoggerTest {
 		verifyNoMoreInteractions(writerMock);
 	}
 
+	private void thenWriterShouldWriteLine(String string) throws IOException {
+		verify(writerMock).write(string);
+		verify(writerMock).newLine();
+		verifyNoMoreInteractions(writerMock);
+	}
+
 	private void thenWriterShouldWriteOnlyDelimiter(CSVLogger csvLogger) throws IOException {
 		thenWriterShouldWrite(csvLogger.getDelimiter());
 	}
@@ -95,6 +101,26 @@ public class CSVLoggerTest {
 	}
 
 	@Test
+	public void writeLineWithDateShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		Date inputDate = new Date();
+		csvLogger.writeLine(inputDate);
+		thenWriterShouldWriteLine("" + inputDate);
+	}
+
+	@Test
+	public void writeLineWithNullDateShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		Date nullInputDate = null;
+		csvLogger.writeLine(nullInputDate);
+		thenWriterShouldWriteLine(csvLogger.getNullString());
+	}
+
+	@Test
 	public void writeWithStringShouldDelegateToWriter() throws Exception {
 		CSVLogger csvLogger = givenCSVLoggerIsCreated();
 		givenWriterManagerReturnsWriterMock();
@@ -115,13 +141,43 @@ public class CSVLoggerTest {
 	}
 
 	@Test
+	public void writeLineWithStringShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		String inputString = "TestString";
+		csvLogger.writeLine(inputString);
+		thenWriterShouldWriteLine("" + inputString);
+	}
+
+	@Test
+	public void writeLineWithNullStringShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		String nullString = null;
+		csvLogger.writeLine(nullString);
+		thenWriterShouldWriteLine(csvLogger.getNullString());
+	}
+
+	@Test
 	public void writeWithIntShouldDelegateToWriter() throws Exception {
 		CSVLogger csvLogger = givenCSVLoggerIsCreated();
 		givenWriterManagerReturnsWriterMock();
 		givenCSVLoggerIsOpen(csvLogger);
-		int inputInt = 17;
+		int inputInt = 15;
 		csvLogger.write(inputInt);
 		thenWriterShouldWrite("" + inputInt + csvLogger.getDelimiter());
+	}
+
+	@Test
+	public void writeLineWithIntShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		int inputInt = 15;
+		csvLogger.writeLine(inputInt);
+		thenWriterShouldWriteLine("" + inputInt);
 	}
 
 	@Test
@@ -129,9 +185,19 @@ public class CSVLoggerTest {
 		CSVLogger csvLogger = givenCSVLoggerIsCreated();
 		givenWriterManagerReturnsWriterMock();
 		givenCSVLoggerIsOpen(csvLogger);
-		float inputFloat = 17.0f;
+		float inputFloat = 16.0f;
 		csvLogger.write(inputFloat);
 		thenWriterShouldWrite("" + inputFloat + csvLogger.getDelimiter());
+	}
+
+	@Test
+	public void writeLineWithFloatShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		float inputFloat = 16.0f;
+		csvLogger.writeLine(inputFloat);
+		thenWriterShouldWriteLine("" + inputFloat);
 	}
 
 	@Test
@@ -142,6 +208,16 @@ public class CSVLoggerTest {
 		double inputDouble = 17.0;
 		csvLogger.write(inputDouble);
 		thenWriterShouldWrite("" + inputDouble + csvLogger.getDelimiter());
+	}
+
+	@Test
+	public void writeLineWithDoubleShouldDelegateToWriter() throws Exception {
+		CSVLogger csvLogger = givenCSVLoggerIsCreated();
+		givenWriterManagerReturnsWriterMock();
+		givenCSVLoggerIsOpen(csvLogger);
+		double inputDouble = 17.0;
+		csvLogger.writeLine(inputDouble);
+		thenWriterShouldWriteLine("" + inputDouble);
 	}
 
 	@Test

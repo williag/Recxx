@@ -1029,7 +1029,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 			m_logger.write("null");
 
 		m_logger.write(percentageDiff);
-		m_logger.writeln(absDiff);
+		m_logger.writeLine(absDiff);
 
 	}
 
@@ -1052,26 +1052,26 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 	private void logSummaryToFile(String alias1, int rowCount1, String alias2, int rowCount2, int rowsMatched)
 	        throws IOException {
 		// 2 blank lines to separate out the summary from the rest of the results
-		m_logger.writeln("");
-		m_logger.writeln("");
-		m_logger.writeln("=======================");
-		m_logger.writeln("Reconciliation Report");
-		m_logger.writeln("=======================");
+		m_logger.writeLine("");
+		m_logger.writeLine("");
+		m_logger.writeLine("=======================");
+		m_logger.writeLine("Reconciliation Report");
+		m_logger.writeLine("=======================");
 		m_logger.write(alias1 + " rows");
-		m_logger.writeln(rowCount1);
+		m_logger.writeLine(rowCount1);
 		m_logger.write(alias2 + " rows");
-		m_logger.writeln(rowCount2);
+		m_logger.writeLine(rowCount2);
 		m_logger.write(alias1 + " matched to " + alias2);
-		m_logger.writeln(rowsMatched);
+		m_logger.writeLine(rowsMatched);
 		m_logger.write(alias1 + " matched to " + alias2 + " %");
 
 		Integer i = rowsMatched;
 		Integer ii = rowCount1;
 		Integer ii2 = rowCount2;
 
-		m_logger.writeln(m_dPercentageFormatter.format(i.floatValue() / ii.floatValue()));
+		m_logger.writeLine(m_dPercentageFormatter.format(i.floatValue() / ii.floatValue()));
 		m_logger.write(alias2 + " matched to " + alias1 + " %");
-		m_logger.writeln(m_dPercentageFormatter.format(i.floatValue() / ii2.floatValue()));
+		m_logger.writeLine(m_dPercentageFormatter.format(i.floatValue() / ii2.floatValue()));
 
 		// loop through the sources and start them loading...
 		Iterator sourceIterator = m_propertiesMap.keySet().iterator();
@@ -1084,19 +1084,19 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 
 		// at some point, put this in the equivalent of a toString() method
 		// and loop out all the properties values but maybe not the passwords!
-		m_logger.writeln("");
-		m_logger.writeln("");
-		m_logger.writeln("=======================");
-		m_logger.writeln("Report Properties");
-		m_logger.writeln("=======================");
+		m_logger.writeLine("");
+		m_logger.writeLine("");
+		m_logger.writeLine("=======================");
+		m_logger.writeLine("Report Properties");
+		m_logger.writeLine("=======================");
 		m_logger.write("Rec File Date/Time");
-		m_logger.writeln(m_logger.toString());
+		m_logger.writeLine(m_logger.toString());
 		m_logger.write("Tolerance Level %");
-		m_logger.writeln(props.getProperty("tolerance"));
+		m_logger.writeLine(props.getProperty("tolerance"));
 		m_logger.write("HandleNullsAsZero?");
-		m_logger.writeln(props.getProperty("handleNullsAsZero"));
+		m_logger.writeLine(props.getProperty("handleNullsAsZero"));
 		m_logger.write("SmallestAbsoluteValue");
-		m_logger.writeln(props.getProperty("smallestAbsoluteValue"));
+		m_logger.writeLine(props.getProperty("smallestAbsoluteValue"));
 
 	}
 
@@ -1195,7 +1195,7 @@ public class Recxx extends AbstractRecFeed implements Runnable {
 			m_logger.write(alias2 + ".columnName");
 			m_logger.write(alias2 + ".columnValue");
 			m_logger.write("% Diff");
-			m_logger.writeln("Abs Diff");
+			m_logger.writeLine("Abs Diff");
 
 			m_loggerInit = true;
 		}
