@@ -2,8 +2,8 @@ package org.recxx;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static org.recxx.utils.ReconciliationMode.OW;
-import static org.recxx.utils.ReconciliationMode.TW;
+import static org.recxx.ReconciliationMode.OW;
+import static org.recxx.ReconciliationMode.TW;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -27,7 +27,6 @@ import org.recxx.facades.RecxxWorker;
 import org.recxx.utils.ArrayUtils;
 import org.recxx.utils.CONSTANTS;
 import org.recxx.utils.CloseableUtils;
-import org.recxx.utils.ReconciliationMode;
 import org.recxx.writer.BufferedWriterManager;
 import org.recxx.writer.CSVLogger;
 
