@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by Shaine Ismail. User: sismail Date: 23/08/2011 Time: 18:27
- */
 public class ArrayUtils {
+
+	private ArrayUtils() {
+	}
 
 	public static <T> T[] mergeArrays(T[] one, T[] two) {
 		T[] mergedArray = Arrays.copyOf(one, one.length + two.length);
