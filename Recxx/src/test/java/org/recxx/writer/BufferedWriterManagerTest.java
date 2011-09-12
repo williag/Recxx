@@ -25,6 +25,8 @@ public class BufferedWriterManagerTest {
 
 	private BufferedWriterManager bufferedWriterManager;
 
+	private BufferedWriter bufferedWriter;
+
 	@Mock
 	private CloseableUtils closeableUtilsMock;
 
@@ -35,6 +37,11 @@ public class BufferedWriterManagerTest {
 
 	private void givenBufferedWriterManagerIsCreated() {
 		bufferedWriterManager = new BufferedWriterManager(closeableUtilsMock);
+	}
+
+	private void givenBufferedWriterManagerIsOpen() throws IOException {
+		File testFile = testFileManager.getTestFile();
+		bufferedWriter = bufferedWriterManager.open(testFile);
 	}
 
 	@Test
@@ -48,16 +55,14 @@ public class BufferedWriterManagerTest {
 	@Test
 	public void closeShouldCloseWriters() throws Exception {
 		givenBufferedWriterManagerIsCreated();
-		File testFile = testFileManager.getTestFile();
-		bufferedWriterManager.open(testFile);
+		givenBufferedWriterManagerIsOpen();
 		bufferedWriterManager.close();
 	}
 
 	@Test
 	public void closeShouldThrowExceptionWhenWritersThrowExceptionDuringClose() throws Exception {
 		givenBufferedWriterManagerIsCreated();
-		File testFile = testFileManager.getTestFile();
-		BufferedWriter bufferedWriter = bufferedWriterManager.open(testFile);
+		givenBufferedWriterManagerIsOpen();
 		IOException testException = new IOException("Test Exception");
 		when(closeableUtilsMock.tryToClose(bufferedWriter)).thenReturn(testException);
 		try {
